@@ -82,7 +82,9 @@ class LibrarySystem(maliang.Tk):
         self.excel_max_row = 2
         self.file_path = None
         self.one_borrow_search_type = None
-        
+        self.now_search_books_list = []
+        self.want_to_borrow_books_list = []
+        self.want_to_borrow_books_list_name_and_isbn_tuple = []
 
 
 
@@ -183,7 +185,7 @@ class LibrarySystem(maliang.Tk):
         self.one_borrow_ready_to_borrow_tree.column("出版时间", width=100)
         self.one_borrow_ready_to_borrow_tree.place(x=600,y=10,width=400,height=70)
         # self.one_borrow_ready_to_borrow_tree.pack(side="left",fill="both",expand=True)
-        # self.one_borrow_ready_to_borrow_tree.bind("<Double-1>", self.borrow_book_double_click)
+        self.one_borrow_ready_to_borrow_tree.bind("<ButtonRelease-1>", self.ready_to_borrow_book_touch)
 
         self.one_borrow_search_button = maliang.Button(self.one_borrow_window__Canver,(400,115),size=(100,40),fontsize=15,text="搜索", anchor="nw", command=lambda:self.search_book())
         
@@ -203,6 +205,7 @@ class LibrarySystem(maliang.Tk):
         self.one_borrow_search_show_books_tree.column("ISBN", width=100)
         self.one_borrow_search_show_books_tree.column("库存", width=100)
         self.one_borrow_search_show_books_tree.place(x=400,y=160,width=600)
+        self.one_borrow_search_show_books_tree.bind("<ButtonRelease-1>", self.search_touch_add_to_ready_to_borrow_tree)
 
           #None  !"None"
 
@@ -441,9 +444,57 @@ class LibrarySystem(maliang.Tk):
     
     def search_book(self):
         if self.one_borrow_search_type_OptionButton.get() != None:
-            pass
-        pass
+            if self.one_borrow_search_type == 0:
+                #书内容搜索
+                search_result = lb.Find_Books(self.one_borrow_search_inputbox.get())
+                print(search_result)
+                for want_to_delete_book in self.one_borrow_search_show_books_tree.get_children():
+                    self.one_borrow_search_show_books_tree.delete(want_to_delete_book)
+                self.now_search_books_list = search_result
+                for add_to_tree in search_result:
+                    print(add_to_tree)
+                    self.one_borrow_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
+                
+            elif self.one_borrow_search_type == 1:
+                #ISBN搜索
+                search_result = lb.Find_book_by_isbn(self.one_borrow_search_inputbox.get())
+                for want_to_delete_book in self.one_borrow_search_show_books_tree.get_children():
+                    self.one_borrow_search_show_books_tree.delete(want_to_delete_book)
+                if search_result['code'] == 200:
+                    add_to_tree = search_result['msg']
+                    print(add_to_tree)
+                    self.now_search_books_list = [add_to_tree]
+                    self.one_borrow_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
+                pass
+        
 
+    def search_touch_add_to_ready_to_borrow_tree(self,event):
+        selected_item = self.one_borrow_search_show_books_tree.selection()[0]
+        book_info_in_tree = self.one_borrow_search_show_books_tree.item(selected_item, "values")
+        index = self.one_borrow_search_show_books_tree.index(selected_item)
+        book_info = self.now_search_books_list[index]
+        book_name = book_info[0]
+        book_author = book_info[1]
+        book_press = book_info[2]
+        book_publicationTime = book_info[3]
+        book_isbn = book_info[4]
+        if book_info_in_tree not in self.want_to_borrow_books_list:
+            self.want_to_borrow_books_list.append(book_info_in_tree)
+            self.want_to_borrow_books_list_name_and_isbn_tuple.append((book_name, book_isbn))
+            self.one_borrow_ready_to_borrow_tree.insert("", "end", values=(book_name, book_author, book_press, book_publicationTime))
+            messagebox.showinfo("提示", "添加成功")
+            
+
+    def ready_to_borrow_book_touch(self,event):
+        selected_item = self.one_borrow_ready_to_borrow_tree.selection()[0]
+        selected_index = self.one_borrow_ready_to_borrow_tree.index(selected_item)
+        self.want_to_borrow_books_list.pop(selected_index)
+        for m in self.want_to_borrow_books_list_name_and_isbn_tuple:
+            if m[0] == self.one_borrow_ready_to_borrow_tree.item(selected_item, "values")[0]:
+                self.want_to_borrow_books_list_name_and_isbn_tuple.remove(m)
+                break
+        self.one_borrow_ready_to_borrow_tree.delete(selected_item)
+        # messagebox.showinfo("提示", "删除成功")
 
 Developer = LibrarySystem()
 

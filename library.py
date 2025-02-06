@@ -411,31 +411,34 @@ class Library:
             return "没有这本书"
 
 #搜索书籍
-    def Find_Books(self,searchname)->list :
+    def Find_Books(self,searchname)->list[tuple] :
         print(f">Library>Find_Books({searchname})")
         results = []
         tosql = '''SELECT * from books'''
         cursor= Librarysql.execute(tosql)
         books = cursor.fetchall()
-        #一级搜索：全搜索
-        for book in books:
-            if (searchname in book[0]) or (searchname in book[1]) or (searchname in book[2]) or (searchname in book[3]):
-                results.append(book)
-        #二级搜索：二字
-        for book in books:
-                for i in range(len(searchname)-1):
-                    ToSname = searchname[i]+searchname[i+1]
-                    if (ToSname in book[0]) or (ToSname in book[1]) or (ToSname in book[2]) or (searchname in book[3]):
+        if searchname != "":
+            #一级搜索：全搜索
+            for book in books:
+                if (searchname in book[0]) or (searchname in book[1]) or (searchname in book[2]) or (searchname in book[3]):
+                    results.append(book)
+            #二级搜索：二字
+            for book in books:
+                    for i in range(len(searchname)-1):
+                        ToSname = searchname[i]+searchname[i+1]
+                        if (ToSname in book[0]) or (ToSname in book[1]) or (ToSname in book[2]) or (searchname in book[3]):
+                            if book not in results:
+                                results.append(book)
+            #三级搜索：挨个字
+            for book in books:
+                for word in searchname:
+                    if (word in book[0]) or (word in book[1]) or (word in book[2]) or (searchname in book[3]):
                         if book not in results:
                             results.append(book)
-        #三级搜索：挨个字
-        for book in books:
-            for word in searchname:
-                if (word in book[0]) or (word in book[1]) or (word in book[2]) or (searchname in book[3]):
-                    if book not in results:
-                        results.append(book)
-        self.Add_Log(f"User搜索 {searchname}")
-        return results
+            self.Add_Log(f"User搜索 {searchname}")
+            return results
+        else:
+            return books
     
     def Find_book_by_isbn(self,isbn:int)->dict:
         print(f">Library>Find_book_by_isbn({isbn})")
