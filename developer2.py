@@ -60,33 +60,61 @@ from datetime import datetime
 import maliang
 import openpyxl
 from library import lb
+from library import *
 import time
 
-
+# global Librarysql
+# global systemlog
+# global cursor1
+# global cursor2
 
 def mypath(other: str | None = ""):
     return os.path.dirname(os.path.abspath(__file__)) + "\\" + other
 
 class LibrarySystem(maliang.Tk):
     def __init__(self):
-        self.excel_import_start_row = "1"
+        self.excel_import_start_row = "2"
         self.excel_import_continue_None = True
-        self.excel_import_bookname_column = "1"
-        self.excel_import_author_column = "2"
-        self.excel_import_press_column = "3"
-        self.excel_import_publicationTime_column = "4"
-        self.excel_import_bookInfo_column = "5"
-        self.excel_import_isbn_column = "6"
-        self.excel_import_inventory_column = "7"
+        self.excel_import_bookname_column = "2"
+        self.excel_import_author_column = "4"
+        self.excel_import_press_column = "6"
+        self.excel_import_publicationTime_column = "7"
+        self.excel_import_bookInfo_column = "11"
+        self.excel_import_isbn_column = "5"
+        self.excel_import_inventory_column = "13"
         self.excel_max_column = 7
         self.excel_max_row = 2
         self.file_path = None
         self.one_borrow_search_type = None
-        self.now_search_books_list = []
+        self.now_search_borrow_books_list = []
         self.want_to_borrow_books_list = []
         self.want_to_borrow_books_list_name_and_isbn_tuple = []
-
-
+        self.borrow_student_name = ""
+        self.borrow_student_id = ""
+        self.borrow_student_class = ""
+        self.borrow_student_password = ""
+        self.borrow_student_borrow_books = ""
+        self.borrow_student_borrowed_books = ""
+        self.one_return_search_type = None
+        self.now_search_return_books_list = []
+        self.want_to_return_books_list = []
+        self.want_to_return_books_list_name_and_isbn_tuple = []
+        self.return_student_name = ""
+        self.return_student_id = ""
+        self.return_student_class = ""
+        self.return_student_password = ""
+        self.return_student_borrow_books = ""
+        self.return_student_borrowed_books = ""
+        self.one_delete_book_search_type = None
+        self.one_delete_book_now_show_books_list = []
+        self._one_delete_book_book_name = ""
+        self._one_delete_book_author_name = ""
+        self._one_delete_book_press = ""
+        self._one_delete_book_publicationTime = ""
+        self._one_delete_book_bookInfo = ""
+        self._one_delete_book_isbn = ""
+        self._one_delete_book_inventory = ""
+        self._one_delete_book_id = ""
 
 
 
@@ -115,6 +143,11 @@ class LibrarySystem(maliang.Tk):
         self.book_import_menu = tk.Menu(self.head_menus, tearoff=0)
         self.book_import_menu.add_command(label="Excel导入所有书籍", command=self.import_book)
         self.book_import_menu.add_command(label="清空所有书籍", command=self.delete_all_book)
+        self.book_import_menu.add_separator()
+        self.book_import_menu.add_command(label="删除单本图书", command=self.delete_one_book)
+        self.book_import_menu.add_separator()
+        self.book_import_menu.add_command(label="修改书籍信息", command=self.amend_book_info)
+
         self.head_menus.add_cascade(label="关于书籍", menu=self.book_import_menu)
 
         # 添加更多分类菜单
@@ -123,13 +156,19 @@ class LibrarySystem(maliang.Tk):
         # self.other_menu.add_command(label="其他功能2", command=self.other_function2)
         # self.head_menus.add_cascade(label="其他", menu=self.other_menu)
 
-
+        
         cv = maliang.Canvas(self.root,auto_zoom=True)
-        cv.pack()
+        cv.place(width=1280, height=720,x=0,y=0)
+        self.now_time = maliang.Text(cv,(310,0),text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
+        def update_time():
+            self.now_time.set(text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            # print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            cv.after(1000, update_time)
         
         # cv.place(width=1280, height=720)
-        
+        self.amend_book_info()
+        self.root.after(1000, update_time)
         # maliang.Button(cv, (20, 20), text="Button", command=lambda: print("Click"))
         # self.a =maliang.CheckBox(cv, (20, 20))
         # maliang.Text(cv, (60, 35), text="CheckBox", anchor="w")
@@ -140,11 +179,11 @@ class LibrarySystem(maliang.Tk):
 
 
 
-
+        self.root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
 
         # self.p()
-        self.borrow_book()
+        
         self.root.config(menu=self.head_menus)
         self.root.center()
         self.root.mainloop()
@@ -154,26 +193,110 @@ class LibrarySystem(maliang.Tk):
         ab = self.a.get()
         print(ab)
 
+    
+        
+
+
+
+
+
+
+
+
+    def return_book(self):
+        print("单本书还书")
+        self.root.withdraw()
+
+        self.one_return_window = maliang.Toplevel(self.root,size=(1000,600),title="还书")
+        self.one_return_window.center()
+        self.one_return_window.iconbitmap(mypath("favicon.ico"))
+        self.one_return_window__Canver = maliang.Canvas(self.one_return_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.one_return_window__Canver.place(width=1000, height=600, x=0, y=0)
+        def print_option_selected(index):
+            self.one_return_search_type = index
+            
+            print(f"用户选择的操作类型: {("书籍搜索", "ISBN搜索","书籍条形码扫描")[index]},索引:{index}")
+        self.one_return_back_botton = maliang.Button(self.one_return_window__Canver,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.one_return_window))
+        self.one_return_search_type_text = maliang.Text(self.one_return_window__Canver,(0,90),text="选择操作类型", anchor="nw")
+        self.one_return_search_type_OptionButton = maliang.OptionButton(self.one_return_window__Canver,(130,85), size=(140,40),text=("书籍搜索", "ISBN搜索","书籍条形码扫描"),command=print_option_selected,default=0)
+        self.one_return_search_type_is_opencv_to_barcode_button = maliang.Button(self.one_return_window__Canver,(130,135),text="书籍条形码扫描", anchor="nw", command=lambda:self.opencv_for_book_isbn_barcode())
+        self.one_return_is_teacher_or_student_text = maliang.Text(self.one_return_window__Canver,(0,200),text="还书人物:", anchor="nw")
+        self.one_return_is_teacher_or_student_SegmentedButton = maliang.SegmentedButton(self.one_return_window__Canver,(120,195),sizes=((100,30),(100,30)),text=("学生","教师"),default=0)
+
+        self.one_return_save_history_checkbox = maliang.CheckBox(self.one_return_window__Canver, (0, 260),default=True)
+        self.one_return_save_history_text = maliang.Text(self.one_return_window__Canver,(45,260),text="保存学生还书历史", anchor="nw")
+
+        self.one_return_ready_to_return_text = maliang.Text(self.one_return_window__Canver,(400,35),text="待还书书籍:", anchor="nw")
+        self.one_return_ready_to_return_tree = ttk.Treeview(self.one_return_window__Canver,height=2,columns=("书名","作者","出版社","出版时间"),show="headings")
+        self.one_return_ready_to_return_tree.heading("书名", text="书名")
+        self.one_return_ready_to_return_tree.heading("作者", text="作者")
+        self.one_return_ready_to_return_tree.heading("出版社", text="出版社")
+        self.one_return_ready_to_return_tree.heading("出版时间", text="出版时间")
+        self.one_return_ready_to_return_tree.column("书名", width=100)
+        self.one_return_ready_to_return_tree.column("作者", width=100)
+        self.one_return_ready_to_return_tree.column("出版社", width=100)
+        self.one_return_ready_to_return_tree.column("出版时间", width=100)
+        self.one_return_ready_to_return_tree.place(x=530,y=10,width=400,height=70)
+        self.one_return_ready_to_return_tree.bind("<ButtonRelease-1>", self.ready_to_return_book_touch)
+
+        self.one_return_search_button = maliang.Button(self.one_return_window__Canver,(400,115),size=(100,40),fontsize=15,text="搜索", anchor="nw", command=lambda:self.search_return_book())
+        
+        self.one_return_search_inputbox = maliang.InputBox(self.one_return_window__Canver,(500,115),size=(500,40))
+
+        self.one_return_search_show_books_tree = ttk.Treeview(self.one_return_window__Canver,columns=("书名","作者","出版社","出版时间","ISBN","库存"),show="headings")
+        self.one_return_search_show_books_tree.heading("书名", text="书名")
+        self.one_return_search_show_books_tree.heading("作者", text="作者")
+        self.one_return_search_show_books_tree.heading("出版社", text="出版社")
+        self.one_return_search_show_books_tree.heading("出版时间", text="出版时间")
+        self.one_return_search_show_books_tree.heading("ISBN", text="ISBN")
+        self.one_return_search_show_books_tree.heading("库存", text="库存")
+        self.one_return_search_show_books_tree.column("书名", width=100)
+        self.one_return_search_show_books_tree.column("作者", width=100)
+        self.one_return_search_show_books_tree.column("出版社", width=100)
+        self.one_return_search_show_books_tree.column("出版时间", width=100)
+        self.one_return_search_show_books_tree.column("ISBN", width=100)
+        self.one_return_search_show_books_tree.column("库存", width=100)
+        self.one_return_search_show_books_tree.place(x=400,y=160,width=600)
+        self.one_return_search_show_books_tree.bind("<ButtonRelease-1>", self.search_touch_add_to_ready_to_return_tree)
+
+        self.one_return_opencv_to_student_qrcode = maliang.Button(self.one_return_window__Canver,(0,330),size=(150,40),fontsize=15,text="扫描学生二维码", anchor="nw", command=lambda:self.qrcode_to_student_for_return())
+        self.one_return_opencv_return_name = maliang.Text(self.one_return_window__Canver,(180,330),text="学生姓名:", anchor="nw")
+        self.one_return_opencv_return_class = maliang.Text(self.one_return_window__Canver,(180,430),text="学生班级:", anchor="nw")
+        self.one_return_opencv_return_id = maliang.Text(self.one_return_window__Canver,(180,380),text="学生座号:", anchor="nw")
+        
+        self.one_return_return_button = maliang.Button(self.one_return_window__Canver,(450,520),size=(100,40),fontsize=15,text="还书", anchor="nw", command=lambda:self.one_return_window_return_book_click())
+
+
+
+        self.one_return_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.one_return_window))
+        pass
+
     def borrow_book(self):
         self.root.withdraw()
 
-        self.one_borrow_window = maliang.Toplevel(self.root,size=(1000,800),title="借阅图书")
+        self.one_borrow_window = maliang.Toplevel(self.root,size=(1000,600),title="借阅图书")
         self.one_borrow_window.center()
         self.one_borrow_window.iconbitmap(mypath("favicon.ico"))
         self.one_borrow_window__Canver = maliang.Canvas(self.one_borrow_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
-        self.one_borrow_window__Canver.place(width=1000, height=800, x=0, y=0)
+        self.one_borrow_window__Canver.place(width=1000, height=600, x=0, y=0)
         #添加一个按钮在窗口左上角
         self.one_borrow_back_botton = maliang.Button(self.one_borrow_window__Canver,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.one_borrow_window))
         # self.one_borrow_window__Canver.create_line(500, 0, 500, 400, fill="blue violet")
-        
+
 
         def print_option_selected(index):
             self.one_borrow_search_type = index
             print(f"用户选择的操作类型: {("书籍搜索", "ISBN搜索")[index]},索引:{index}")
         self.one_borrow_search_type_text = maliang.Text(self.one_borrow_window__Canver,(0,120),text="选择操作类型", anchor="nw")
-        self.one_borrow_search_type_OptionButton = maliang.OptionButton(self.one_borrow_window__Canver,(130,115), size=(100,40),text=("书籍搜索", "ISBN搜索"),command=print_option_selected)
+        self.one_borrow_search_type_OptionButton = maliang.OptionButton(self.one_borrow_window__Canver,(130,115), size=(100,40),text=("书籍搜索", "ISBN搜索"),command=print_option_selected,default=0)
 
-        self.one_borrow_ready_to_borrow_text = maliang.Text(self.one_borrow_window__Canver,(470,35),text="待借阅书籍:", anchor="nw")
+        self.one_borrow_is_teacher_or_student_text = maliang.Text(self.one_borrow_window__Canver,(0,200),text="借书人物:", anchor="nw")
+        self.one_borrow_is_teacher_or_student_SegmentedButton = maliang.SegmentedButton(self.one_borrow_window__Canver,(120,195),sizes=((100,30),(100,30)),text=("学生","教师"),default=0)
+
+        self.one_borrow_save_history_checkbox = maliang.CheckBox(self.one_borrow_window__Canver, (0, 260),default=True)
+        self.one_borrow_save_history_text = maliang.Text(self.one_borrow_window__Canver,(45,260),text="保存学生借阅历史", anchor="nw")
+
+        self.one_borrow_ready_to_borrow_text = maliang.Text(self.one_borrow_window__Canver,(400,35),text="待借阅书籍:", anchor="nw")
         self.one_borrow_ready_to_borrow_tree = ttk.Treeview(self.one_borrow_window__Canver,height=2,columns=("书名","作者","出版社","出版时间"),show="headings")
         self.one_borrow_ready_to_borrow_tree.heading("书名", text="书名")
         self.one_borrow_ready_to_borrow_tree.heading("作者", text="作者")
@@ -183,8 +306,7 @@ class LibrarySystem(maliang.Tk):
         self.one_borrow_ready_to_borrow_tree.column("作者", width=100)
         self.one_borrow_ready_to_borrow_tree.column("出版社", width=100)
         self.one_borrow_ready_to_borrow_tree.column("出版时间", width=100)
-        self.one_borrow_ready_to_borrow_tree.place(x=600,y=10,width=400,height=70)
-        # self.one_borrow_ready_to_borrow_tree.pack(side="left",fill="both",expand=True)
+        self.one_borrow_ready_to_borrow_tree.place(x=530,y=10,width=400,height=70)
         self.one_borrow_ready_to_borrow_tree.bind("<ButtonRelease-1>", self.ready_to_borrow_book_touch)
 
         self.one_borrow_search_button = maliang.Button(self.one_borrow_window__Canver,(400,115),size=(100,40),fontsize=15,text="搜索", anchor="nw", command=lambda:self.search_book())
@@ -207,8 +329,13 @@ class LibrarySystem(maliang.Tk):
         self.one_borrow_search_show_books_tree.place(x=400,y=160,width=600)
         self.one_borrow_search_show_books_tree.bind("<ButtonRelease-1>", self.search_touch_add_to_ready_to_borrow_tree)
 
-          #None  !"None"
-
+        self.one_borrow_opencv_to_student_qrcode = maliang.Button(self.one_borrow_window__Canver,(0,330),size=(150,40),fontsize=15,text="扫描学生二维码", anchor="nw", command=lambda:self.qrcode_to_student())
+        self.one_borrow_opencv_return_name = maliang.Text(self.one_borrow_window__Canver,(180,330),text="学生姓名:", anchor="nw")
+        self.one_borrow_opencv_return_class = maliang.Text(self.one_borrow_window__Canver,(180,430),text="学生班级:", anchor="nw")
+        self.one_borrow_opencv_return_id = maliang.Text(self.one_borrow_window__Canver,(180,380),text="学生座号:", anchor="nw")
+        
+        self.one_borrow_borrow_button = maliang.Button(self.one_borrow_window__Canver,(450,520),size=(100,40),fontsize=15,text="借书", anchor="nw", command=lambda:self.one_borrow_window_borrow_book_click())
+        self.one_borrow_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.one_borrow_window))
 
     def import_book(self):
         #先隐藏root窗口
@@ -304,9 +431,7 @@ class LibrarySystem(maliang.Tk):
         thing.destroy()
         self.root.deiconify()
 
-    def return_book(self):
-        print("单本书还书")
-        pass
+    
 
     def import_excel(self,file_path:str=None,import_or_updata:float=True,import_to_splte:float=False):
         if import_or_updata:
@@ -450,7 +575,7 @@ class LibrarySystem(maliang.Tk):
                 print(search_result)
                 for want_to_delete_book in self.one_borrow_search_show_books_tree.get_children():
                     self.one_borrow_search_show_books_tree.delete(want_to_delete_book)
-                self.now_search_books_list = search_result
+                self.now_search_borrow_books_list = search_result
                 for add_to_tree in search_result:
                     print(add_to_tree)
                     self.one_borrow_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
@@ -463,7 +588,7 @@ class LibrarySystem(maliang.Tk):
                 if search_result['code'] == 200:
                     add_to_tree = search_result['msg']
                     print(add_to_tree)
-                    self.now_search_books_list = [add_to_tree]
+                    self.now_search_borrow_books_list = [add_to_tree]
                     self.one_borrow_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
                 pass
         
@@ -472,12 +597,13 @@ class LibrarySystem(maliang.Tk):
         selected_item = self.one_borrow_search_show_books_tree.selection()[0]
         book_info_in_tree = self.one_borrow_search_show_books_tree.item(selected_item, "values")
         index = self.one_borrow_search_show_books_tree.index(selected_item)
-        book_info = self.now_search_books_list[index]
+        book_info = self.now_search_borrow_books_list[index]
+        print(book_info)
         book_name = book_info[0]
         book_author = book_info[1]
         book_press = book_info[2]
         book_publicationTime = book_info[3]
-        book_isbn = book_info[4]
+        book_isbn = book_info[5]
         if book_info_in_tree not in self.want_to_borrow_books_list:
             self.want_to_borrow_books_list.append(book_info_in_tree)
             self.want_to_borrow_books_list_name_and_isbn_tuple.append((book_name, book_isbn))
@@ -496,5 +622,459 @@ class LibrarySystem(maliang.Tk):
         self.one_borrow_ready_to_borrow_tree.delete(selected_item)
         # messagebox.showinfo("提示", "删除成功")
 
+    def one_borrow_window_borrow_book_click(self):
+        if self.one_borrow_is_teacher_or_student_SegmentedButton.get() == 0:
+            if self.borrow_student_name!=""or self.borrow_student_id!=""or self.borrow_student_class!=""or self.borrow_student_password!=""or self.borrow_student_borrow_books!=""or self.borrow_student_borrowed_books!="":
+                print("================================================================================")
+                print(f"{("学生","老师")[self.one_borrow_is_teacher_or_student_SegmentedButton.get()]} 借书")
+                print(f"是否保留借书历史: {self.one_borrow_save_history_checkbox.get()}")
+                print(f"学生姓名: {self.borrow_student_name}")
+                print(f"学生座号: {self.borrow_student_id}")
+                print(f"学生班级: {self.borrow_student_class}")
+                print(f"学生借书书籍: {self.borrow_student_borrow_books}")
+                print(f"学生借书密码: {self.borrow_student_password}")
+                print(f"学生借书历史: {self.borrow_student_borrowed_books}")
+                #print(f"借书书籍: {self.want_to_borrow_books_list}")
+                show_to_user = ""
+                if len(self.want_to_borrow_books_list) > 0:
+                    for to_borrow_isbn in self.want_to_borrow_books_list_name_and_isbn_tuple:
+                        print(to_borrow_isbn)
+                        print(to_borrow_isbn[1])
+                        #lb.borrow_book(toborrow_book_isbn,list[name,id,class])
+                        show_to_user +=f"{to_borrow_isbn[0]} {lb.Borrow_Book(to_borrow_isbn[1],[self.borrow_student_name,self.borrow_student_id,self.borrow_student_class,self.borrow_student_borrow_books,self.borrow_student_password,self.borrow_student_borrowed_books],save_history=self.one_borrow_save_history_checkbox.get())} \n"
+                else:
+                    messagebox.showerror("错误","请先选择要借的书籍")
+                    return 0
+            else:
+                messagebox.showerror("错误","请先添加学生信息")
+        elif self.one_borrow_is_teacher_or_student_SegmentedButton.get() == 1:
+            show_to_user = ""
+            if len(self.want_to_borrow_books_list) > 0:
+                for to_borrow_isbn in self.want_to_borrow_books_list_name_and_isbn_tuple:
+                    print(to_borrow_isbn)
+                    print(to_borrow_isbn[1])
+                    show_to_user +=f"{to_borrow_isbn[0]} {lb.Borrow_Book(to_borrow_isbn[1],[],save_history=False)} \n"
+            else:
+                messagebox.showerror("错误","请先选择要借的书籍")
+                return 0
+        messagebox.showinfo("提示", show_to_user)
+        for it in self.one_borrow_ready_to_borrow_tree.get_children():
+            self.one_borrow_ready_to_borrow_tree.delete(it)
+        self.want_to_borrow_books_list = []
+        self.want_to_borrow_books_list_name_and_isbn_tuple = []
+        self.borrow_student_name = ""
+        self.borrow_student_id = ""
+        self.borrow_student_class = ""
+        self.borrow_student_password = ""
+        self.borrow_student_borrow_books = ""
+        self.borrow_student_borrowed_books = ""
+        self.one_borrow_opencv_return_name.set(text=f"学生姓名: ")
+        self.one_borrow_opencv_return_id.set(text=f"学生座号: ")
+        self.one_borrow_opencv_return_class.set(text=f"学生班级: ")
+        self.goback(self.one_borrow_window)
+
+
+    def qrcode_to_student(self):
+        if self.one_borrow_is_teacher_or_student_SegmentedButton.get() == 0:
+            student_msg = lb.cv_for_student()
+            jianli_lianjie()
+            student_msg = lb.Login_User(student_msg[0], student_msg[2], student_msg[1], student_msg[3])
+            print(student_msg)
+            if student_msg['code'] == 200:
+                student_msg = student_msg['msg'][0]
+                student_name = student_msg[0]
+                self.borrow_student_name = student_name
+                student_id = student_msg[1]
+                self.borrow_student_id = student_id
+                student_class = student_msg[2]
+                self.borrow_student_class = student_class
+                student_borrow_book = student_msg[3]
+                self.borrow_student_borrow_books = student_borrow_book
+                student_borrow_password = student_msg[4]
+                self.borrow_student_password = student_borrow_password
+                student_borrow_history = student_msg[5]
+                self.borrow_student_borrowed_books = student_borrow_history
+                self.one_borrow_opencv_return_name.set(text=f"学生姓名: {student_name}")
+                self.one_borrow_opencv_return_id.set(text=f"学生座号: {student_id}")
+                self.one_borrow_opencv_return_class.set(text=f"学生班级: {student_class}")
+                
+            elif student_msg['code'] == 404:
+                messagebox.showinfo("提示", "未找到该学生")
+                return 0
+
+
+
+    def ready_to_return_book_touch(self,event):
+        """selected_item = self.one_borrow_ready_to_borrow_tree.selection()[0]
+        selected_index = self.one_borrow_ready_to_borrow_tree.index(selected_item)
+        self.want_to_borrow_books_list.pop(selected_index)
+        for m in self.want_to_borrow_books_list_name_and_isbn_tuple:
+            if m[0] == self.one_borrow_ready_to_borrow_tree.item(selected_item, "values")[0]:
+                self.want_to_borrow_books_list_name_and_isbn_tuple.remove(m)
+                break
+        self.one_borrow_ready_to_borrow_tree.delete(selected_item)
+        # messagebox.showinfo("提示", "删除成功")
+        """
+        selected_item = self.one_return_ready_to_return_tree.selection()[0]
+        selected_index = self.one_return_ready_to_return_tree.index(selected_item)
+        self.want_to_return_books_list.pop(selected_index)
+        for m in self.want_to_return_books_list_name_and_isbn_tuple:
+            if m[0] == self.one_return_ready_to_return_tree.item(selected_item, "values")[0]:
+                self.want_to_return_books_list_name_and_isbn_tuple.remove(m)
+                break
+        self.one_return_ready_to_return_tree.delete(selected_item)
+        # messagebox.showinfo("提示", "删除成功")
+
+    def search_return_book(self):
+        print(self.one_return_search_type_OptionButton.get())
+        if self.one_return_search_type_OptionButton.get() != None and self.one_return_search_inputbox.get() != 2:
+            if self.one_return_search_type_OptionButton.get() == 0:
+                #书内容搜索
+                search_result = lb.Find_Books(self.one_return_search_inputbox.get())
+                print(search_result)
+                for want_to_delete_book in self.one_return_search_show_books_tree.get_children():
+                    self.one_return_search_show_books_tree.delete(want_to_delete_book)
+                self.now_search_return_books_list = search_result
+                for add_to_tree in search_result:
+                    print(add_to_tree)
+                    self.one_return_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
+                
+            elif self.one_return_search_type_OptionButton.get() == 1:
+                #ISBN搜索
+                search_result = lb.Find_book_by_isbn(self.one_return_search_inputbox.get())
+                for want_to_delete_book in self.one_return_search_show_books_tree.get_children():
+                    self.one_return_search_show_books_tree.delete(want_to_delete_book)
+                if search_result['code'] == 200:
+                    add_to_tree = search_result['msg']
+                    print(add_to_tree)
+                    self.now_search_return_books_list = [add_to_tree]
+                    self.one_return_search_show_books_tree.insert("", "end", values=(add_to_tree[0],add_to_tree[1],add_to_tree[2],add_to_tree[3],add_to_tree[5],add_to_tree[6]))
+                elif search_result['code'] == 404:
+                    messagebox.showinfo("提示", "未找到该书籍")
+            
+
+            
+
+    def search_touch_add_to_ready_to_return_tree(self,event):
+        selected_item = self.one_return_search_show_books_tree.selection()[0]
+        book_info_in_tree = self.one_return_search_show_books_tree.item(selected_item, "values")
+        index = self.one_return_search_show_books_tree.index(selected_item)
+        book_info = self.now_search_return_books_list[index]
+        print(book_info)
+        book_name = book_info[0]
+        book_author = book_info[1]
+        book_press = book_info[2]
+        book_publicationTime = book_info[3]
+        book_isbn = book_info[5]
+        if book_info_in_tree not in self.want_to_return_books_list:
+            self.want_to_return_books_list.append(book_info_in_tree)
+            self.want_to_return_books_list_name_and_isbn_tuple.append((book_name, book_isbn))
+            self.one_return_ready_to_return_tree.insert("", "end", values=(book_name, book_author, book_press, book_publicationTime))
+            messagebox.showinfo("提示", "添加成功")
+        pass
+
+    def qrcode_to_student_for_return(self):
+        if self.one_return_is_teacher_or_student_SegmentedButton.get() == 0:
+            student_msg = lb.cv_for_student()
+            jianli_lianjie()
+            student_msg = lb.Login_User(student_msg[0], student_msg[2], student_msg[1], student_msg[3])
+            print(student_msg)
+            if student_msg['code'] == 200:
+                student_msg = student_msg['msg'][0]
+                student_name = student_msg[0]
+                self.return_student_name = student_name
+                student_id = student_msg[1]
+                self.return_student_id = student_id
+                student_class = student_msg[2]
+                self.return_student_class = student_class
+                student_return_book = student_msg[3]
+                self.return_student_borrow_books = student_return_book
+                student_return_password = student_msg[4]
+                self.return_student_password = student_return_password
+                student_borrow_history = student_msg[5]
+                self.return_student_borrowed_books = student_borrow_history
+                self.one_return_opencv_return_name.set(text=f"学生姓名: {student_name}")
+                self.one_return_opencv_return_id.set(text=f"学生座号: {student_id}")
+                self.one_return_opencv_return_class.set(text=f"学生班级: {student_class}")
+                
+            elif student_msg['code'] == 404:
+                messagebox.showinfo("提示", "未找到该学生")
+                return 0
+
+    def one_return_window_return_book_click(self):
+        if self.one_return_is_teacher_or_student_SegmentedButton.get() == 0:
+            #student
+            if self.return_student_name!=""or self.return_student_id!=""or self.return_student_class!=""or self.return_student_password!=""or self.return_student_borrow_books!=""or self.return_student_borrowed_books!="":
+                print("================================================================================")
+                print(f"{("学生","老师")[self.one_return_is_teacher_or_student_SegmentedButton.get()]} 借书")
+                print(f"是否保留借书历史: {self.one_return_save_history_checkbox.get()}")
+                print(f"学生姓名: {self.return_student_name}")
+                print(f"学生座号: {self.return_student_id}")
+                print(f"学生班级: {self.return_student_class}")
+                print(f"学生还书籍: {self.return_student_borrow_books}")
+                print(f"学生还密码: {self.return_student_password}")
+                print(f"学生还历史: {self.return_student_borrowed_books}")
+                
+                show_to_user = ""
+                if len(self.want_to_return_books_list) > 0:
+                    for to_return_isbn in self.want_to_return_books_list_name_and_isbn_tuple:
+                        print(to_return_isbn)
+                        print(to_return_isbn[1])
+                        
+                        if lb.Login_User_Has_Book([self.return_student_name,self.return_student_id,self.return_student_class,self.return_student_borrow_books,self.return_student_password,self.return_student_borrowed_books],str(to_return_isbn[1])):
+                            show_to_user +=f"{to_return_isbn[0]} {lb.Return_Book(to_return_isbn[1],[self.return_student_name,self.return_student_id,self.return_student_class,self.return_student_borrow_books,self.return_student_password,self.return_student_borrowed_books],save_history=self.one_return_save_history_checkbox.get())} \n"
+                        else:
+                            show_to_user += f"{to_return_isbn[0]} 你未借过这本书 \n"
+                            
+
+                    messagebox.showinfo("提示", show_to_user)
+                else:
+                    messagebox.showerror("错误","请先选择要借的书籍")
+                    return 0
+            else:
+                messagebox.showerror("错误","请先添加学生信息")
+                return 0
+        elif self.one_return_is_teacher_or_student_SegmentedButton.get() == 1:
+            show_to_user = ""
+            if len(self.want_to_return_books_list) > 0:
+                for to_return_isbn in self.want_to_return_books_list_name_and_isbn_tuple:
+                    print(to_return_isbn)
+                    print(to_return_isbn[1])
+                    show_to_user +=f"{to_return_isbn[0]} {lb.Return_Book(to_return_isbn[1],[],save_history=self.one_return_save_history_checkbox.get())} \n"
+                
+                messagebox.showinfo("提示", show_to_user)
+                return 0
+            else:
+                messagebox.showerror("错误","请先选择要借的书籍")
+                return 0
+        
+        for item in self.one_return_ready_to_return_tree.get_children():
+            self.one_return_ready_to_return_tree.delete(item)
+        self.one_return_search_type = None
+        self.now_search_return_books_list = []
+        self.want_to_return_books_list = []
+        self.want_to_return_books_list_name_and_isbn_tuple = []
+        self.return_student_name = ""
+        self.return_student_id = ""
+        self.return_student_class = ""
+        self.return_student_password = ""
+        self.return_student_borrow_books = ""
+        self.return_student_borrowed_books = ""
+        self.want_to_return_books_list = []
+        self.goback(self.one_return_window)
+    def opencv_for_book_isbn_barcode(self):
+        if self.one_return_search_type_OptionButton.get() == 2:
+            print("条件满足，OpenCV for isbn条形码")
+            book_msg = lb.cv_for_book()
+            jianli_lianjie()
+            print(book_msg)
+            if book_msg['code']==200:
+                book_msg = book_msg['msg']
+                print(book_msg)
+                for item in self.one_return_search_show_books_tree.get_children():
+                    self.one_return_search_show_books_tree.delete(item)
+                self.now_search_return_books_list = []
+                self.one_return_search_show_books_tree.insert("", "end", values=(book_msg[0],book_msg[1],book_msg[2],book_msg[3],book_msg[5],book_msg[6]))
+                self.now_search_return_books_list.append(book_msg)
+                self.one_return_search_inputbox.set("")
+            elif book_msg['code']==404:
+                messagebox.showinfo("提示", "未识别到该书籍，请检查是否破损或错误数据，请重新添加")
+                return 0
+
+            
+
+    def delete_one_book(self):
+        self.root.withdraw()
+        self.one_delete_book_window = maliang.Toplevel(self.root,size=(1000,800),title="单书删除")
+        self.one_delete_book_window.center()
+        self.one_delete_book_window.iconbitmap(mypath("favicon.ico"))
+        
+
+        self.one_delete_book_wondow__Canvas = maliang.Canvas(self.one_delete_book_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.one_delete_book_wondow__Canvas.place(width=1000, height=800, x=0, y=0)
+        def print_option_selected(index):
+            print(f"{['书籍搜索',"isbn搜索"][index]} {index}")
+
+        
+        self.one_delete_book_back = maliang.Button(self.one_delete_book_wondow__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.one_delete_book_window))
+        self.one_delete_book_search_type_OptionButton = maliang.OptionButton(self.one_delete_book_wondow__Canvas,(0,50), size=(100,35),fontsize=15,text=("书籍搜索", "ISBN搜索"),command=print_option_selected,default=0)
+        self.one_delete_book_search_button = maliang.Button(self.one_delete_book_wondow__Canvas,(100,50),size=(100,35),fontsize=15,text="搜索书籍", anchor="nw", command=lambda:self.one_delete_book_search_book())
+        self.one_delete_book_search_inputbox = maliang.InputBox(self.one_delete_book_wondow__Canvas,(200,50),size=(800,35))
+        self.one_delete_book_search_inputbox.bind("<Return>",self.one_delete_book_search_book)
+        self.one_delete_book_search_show_tree = ttk.Treeview(self.one_delete_book_wondow__Canvas,columns=("书名","作者","出版社","出版时间","ISBN","库存"),show="headings")
+        self.one_delete_book_search_show_tree.heading("书名", text="书名")
+        self.one_delete_book_search_show_tree.heading("作者", text="作者")
+        self.one_delete_book_search_show_tree.heading("出版社", text="出版社")
+        self.one_delete_book_search_show_tree.heading("出版时间", text="出版时间")
+        self.one_delete_book_search_show_tree.heading("ISBN", text="ISBN")
+        self.one_delete_book_search_show_tree.heading("库存", text="库存")
+        self.one_delete_book_search_show_tree.column("书名", width=100)
+        self.one_delete_book_search_show_tree.column("作者", width=100)
+        self.one_delete_book_search_show_tree.column("出版社", width=100)
+        self.one_delete_book_search_show_tree.column("出版时间", width=100)
+        self.one_delete_book_search_show_tree.column("ISBN", width=100)
+        self.one_delete_book_search_show_tree.column("库存", width=100)
+        self.one_delete_book_search_show_tree.place(x=0,y=100,width=600,height=500)
+        self.one_delete_book_search_show_tree.bind("<ButtonRelease-1>",self.one_delete_book_search_show_tree_double_click)
+
+        self.one_delete_book_delete_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,100),text="预删除书籍信息:",underline=True,anchor="nw")
+        self.one_delete_book_book_name_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,150),text="书名: ",anchor="nw")
+        self.one_delete_book_book_name = maliang.Text(self.one_delete_book_wondow__Canvas,(680,150),text="",anchor="nw")
+        self.one_delete_book_author_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,200),text="作者: ",anchor="nw")
+        self.one_delete_book_author_name = maliang.Text(self.one_delete_book_wondow__Canvas,(680,200),text="",anchor="nw")
+        self.one_delete_book_press_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,250),text="出版社: ",anchor="nw")
+        self.one_delete_book_press = maliang.Text(self.one_delete_book_wondow__Canvas,(700,250),text="",anchor="nw")
+        self.one_delete_book_publicationTime_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,300),text="出版时间: ",anchor="nw")
+        self.one_delete_book_publicationTime = maliang.Text(self.one_delete_book_wondow__Canvas,(720,300),text="",anchor="nw")
+        self.one_delete_book_bookInfo_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,350),text="书籍介绍: ",anchor="nw")
+        self.one_delete_book_bookInfo = maliang.Text(self.one_delete_book_wondow__Canvas,(630,380),text="",anchor="nw")
+        self.one_delete_book_isbn_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,500),text="ISBN: ",anchor="nw")
+        self.one_delete_book_isbn = maliang.Text(self.one_delete_book_wondow__Canvas,(685,500),text="",anchor="nw")
+        self.one_delete_book_inventory_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,550),text="库存: ",anchor="nw")
+        self.one_delete_book_inventory = maliang.Text(self.one_delete_book_wondow__Canvas,(680,550),text="",anchor="nw")
+        self.one_delete_book_id_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,600),text="id: ",anchor="nw")
+        self.one_delete_book_id = maliang.Text(self.one_delete_book_wondow__Canvas,(660,600),text="",anchor="nw")
+
+        self.one_delete_book_delete_button = maliang.Button(self.one_delete_book_wondow__Canvas,(470,700),size=(100,35),fontsize=15,text="删除书籍", anchor="nw", command=lambda:self.one_delete_book_delete_book_button_click())
+
+
+        self.one_delete_book_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.one_delete_book_window))
+        pass
+
+
+
+
+
+
+
+
+    def one_delete_book_search_book(self,event=None):
+        search_thing = self.one_delete_book_search_inputbox.get()
+        print(search_thing)
+        search_books_list = []
+        if self.one_delete_book_search_type_OptionButton.get() == 0:
+            #书籍搜索
+            search_books_list = lb.Find_Books(self.one_delete_book_search_inputbox.get())
+            # print(search_books_list)
+            if len(search_books_list)>0:
+                self.one_delete_book_now_show_books_list = []
+                for item in self.one_delete_book_search_show_tree.get_children():
+                    self.one_delete_book_search_show_tree.delete(item)
+                for item in search_books_list:
+                    self.one_delete_book_now_show_books_list.append(item)
+                    self.one_delete_book_search_show_tree.insert("", "end", values=(item[0],item[1],item[2],item[3],item[5],item[6]))
+                    
+            else:
+                messagebox.showerror("错误", "未找到相关书籍")
+            pass
+
+        elif self.one_delete_book_search_type_OptionButton.get() == 1:
+            #isbn搜索
+            search_books_dict = lb.Find_book_by_isbn(self.one_delete_book_search_inputbox.get())
+            if search_books_dict['code'] == 200:
+                search_books_list = search_books_dict['msg']
+                self.one_delete_book_now_show_books_list = []
+                for item in self.one_delete_book_search_show_tree.get_children():
+                    self.one_delete_book_search_show_tree.delete(item)
+                self.one_delete_book_now_show_books_list.append(search_books_list)
+                print(search_books_list)
+                self.one_delete_book_search_show_tree.insert("", "end", values=(search_books_list[0],search_books_list[1],search_books_list[2],search_books_list[3],search_books_list[5],search_books_list[6]))
+            elif search_books_dict['code'] == 404:
+                messagebox.showerror("错误", "未找到该书籍")
+                return 0
+            
+        
+
+    def one_delete_book_search_show_tree_double_click(self,event):
+        selected_item = self.one_delete_book_search_show_tree.selection()[0]
+        book_info_in_tree = self.one_delete_book_search_show_tree.item(selected_item, "values")
+        index = self.one_delete_book_search_show_tree.index(selected_item)
+        book_info = self.one_delete_book_now_show_books_list[index]
+        print(book_info)
+        #__init__里的
+        self._one_delete_book_book_name = book_info[0]
+        self._one_delete_book_author_name = book_info[1]
+        self._one_delete_book_press = book_info[2]
+        self._one_delete_book_publicationTime = book_info[3]
+        self._one_delete_book_bookInfo = book_info[4]
+        self._one_delete_book_isbn = book_info[5]
+        self._one_delete_book_inventory = book_info[6]
+        self._one_delete_book_id = book_info[7]
+        
+        self.one_delete_book_book_name.set(self._one_delete_book_book_name)
+        self.one_delete_book_author_name.set(self._one_delete_book_author_name)
+        self.one_delete_book_press.set(self._one_delete_book_press)
+        self._one_delete_book_book_Info = self._one_delete_book_bookInfo.replace("\n", "")
+        self._one_delete_book_book_Info = self._one_delete_book_book_Info.replace("\"", "'")
+        print(self._one_delete_book_book_Info)
+        info_len = len(self._one_delete_book_book_Info)
+        print(info_len)
+        if info_len>51:
+            #4行
+            info = ""
+            info += self._one_delete_book_book_Info[:17] + "\n"
+            info += self._one_delete_book_book_Info[17:34] + "\n"
+            info += self._one_delete_book_book_Info[34:51] + "\n"
+            info += self._one_delete_book_book_Info[51:68] + "..."
+            
+        elif 51>=info_len>34:
+            #3行
+            info = ""
+            info += self._one_delete_book_book_Info[:17] + "\n"
+            info += self._one_delete_book_book_Info[17:34] + "\n"
+            info += self._one_delete_book_book_Info[34:51] + "..."
+            
+        elif 34>=info_len>17:
+            #2行
+            info = ""
+            info += self._one_delete_book_book_Info[:17] + "\n"
+            info += self._one_delete_book_book_Info[17:34] + "..."
+            
+        else:
+            #1行
+            info = ""
+            info += self._one_delete_book_book_Info[:17] + "..."
+            
+        self.one_delete_book_bookInfo.set(info)
+        info=""
+        self.one_delete_book_publicationTime.set(self._one_delete_book_publicationTime)
+        self.one_delete_book_isbn.set(self._one_delete_book_isbn)
+        self.one_delete_book_inventory.set(str(self._one_delete_book_inventory))
+        self.one_delete_book_id.set(self._one_delete_book_id)
+        return
+    
+    def one_delete_book_delete_book_button_click(self):
+        if self._one_delete_book_id != '' and self._one_delete_book_author_name != "" and self._one_delete_book_press != '' and self._one_delete_book_book_Info != '' and self._one_delete_book_publicationTime != '' and self._one_delete_book_isbn != '' and self._one_delete_book_inventory != '':
+            lb.Del_Book(self._one_delete_book_id)
+            messagebox.showinfo("提示", "删除成功")
+            self._one_delete_book_author_name = ''
+            self._one_delete_book_book_name = ''
+            self._one_delete_book_press = ''
+            self._one_delete_book_publicationTime = ''
+            self._one_delete_book_bookInfo = ''
+            self._one_delete_book_isbn = ''
+            self._one_delete_book_inventory = ''
+            self._one_delete_book_id = ''
+            self.goback(self.one_delete_book_window)
+            return
+        
+
+
+
+
+    def amend_book_info(self):
+        self.root.withdraw()
+        self.amend_book_window = maliang.Toplevel(self.root,size=(1000,800),title="修改书籍信息")
+        self.amend_book_window.center()
+        self.amend_book_window.iconbitmap(mypath("favicon.ico"))
+        
+        self.amend_book_window__Canvas = maliang.Canvas(self.amend_book_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.amend_book_window__Canvas.place(x=0,y=0,width=1000,height=800)
+
+        self.amend_book_goback_button = maliang.Button(self.amend_book_window__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.amend_book_window))
+
+
+
+        pass
 Developer = LibrarySystem()
 

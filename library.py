@@ -18,6 +18,8 @@ import sqlite3
 from encrypt import encrypt
 import random
 import cv2
+import threading
+import queue
 def mypath(other: str | None = ""):
     return str(os.path.dirname(os.path.abspath(__file__)))+"\\"+other
 #登录密码加密
@@ -40,85 +42,97 @@ def mimajiami(text, key="Apollokey"):
     
     return encoded
 
+global Librarysql
+global systemlog
+global cursor1
+global cursor2
+def jianli_lianjie(a=False):
+    global Librarysql
+    global systemlog
+    global cursor1
+    global cursor2
+    #建立数据库
+    Librarysql = sqlite3.connect(mypath("Library.oflibrary"))
+    systemlog = sqlite3.connect(mypath("Library.log"))
+    if a==True:
+        cursor1 = Librarysql.cursor()
+        cursor2 = systemlog.cursor()
+    #建立表
+    try:
+        #图书馆书籍库
+        tosql = '''
+        Create table books(
+            bookname text,
+            author text,
+            press text,
+            publicationTime text,
+            bookInfo text,
+            isbn text,
+            inventory int,
+            id text);
+        '''
+        Librarysql.execute(tosql)
+        #现已借出的书籍(会修改信息，还书时会删除信息)
+        tosql = '''
+        Create table borrow(
+            bookname text,
+            author text,
+            press text,
+            publicationTime text,
+            isbn text,
+            borrowtime text,
+            MustReturnTime text,
+            ReaderName text,
+            Readerid int,
+            Readerclass int
+            );
+        '''
+        Librarysql.execute(tosql)
+        #BorrowedBooks籍(不会修改信息，只要有借过书的都有记录)
+        tosql = '''
+        Create table borrowhistory(
+            bookname text,
+            author text,
+            press text,
+            publicationTime text,
+            isbn text,
+            borrowtime text,
+            MustBookReturnTime text,
+            TrueBookReturnTime text,
+            ReaderName text,
+            Readerid int,
+            Readerclass int
+            );
+        '''
+        Librarysql.execute(tosql)
+        tosql = '''
+        Create table users(
+            Username text,
+            Userid int,
+            Userclass int,
+            UserBorrowBooks text,
+            UserPassword text,
+            UserBorrowedBooks text
+            );
+        '''
+        Librarysql.execute(tosql)
+    except Exception as error:
+        print(error)
 
-
-#建立数据库
-Librarysql = sqlite3.connect(mypath("Library.oflibrary"))
-systemlog = sqlite3.connect(mypath("Library.log"))
-#建立表
-try:
-    #图书馆书籍库
-    tosql = '''
-    Create table books(
-        bookname text,
-        author text,
-        press text,
-        publicationTime text,
-        bookInfo text,
-        isbn text,
-        inventory int);
-    '''
-    Librarysql.execute(tosql)
-    #现已借出的书籍(会修改信息，还书时会删除信息)
-    tosql = '''
-    Create table borrow(
-        bookname text,
-        author text,
-        press text,
-        publicationTime text,
-        isbn text,
-        borrowtime text,
-        MustReturnTime text,
-        ReaderName text,
-        Readerid int,
-        Readerclass int
-        );
-    '''
-    Librarysql.execute(tosql)
-    #BorrowedBooks籍(不会修改信息，只要有借过书的都有记录)
-    tosql = '''
-    Create table borrowhistory(
-        bookname text,
-        author text,
-        press text,
-        publicationTime text,
-        isbn text,
-        borrowtime text,
-        MustBookReturnTime text,
-        TrueBookReturnTime text,
-        ReaderName text,
-        Readerid int,
-        Readerclass int
-        );
-    '''
-    Librarysql.execute(tosql)
-    tosql = '''
-    Create table users(
-        Username text,
-        Userid int,
-        Userclass int,
-        UserBorrowBooks text,
-        UserPassword text,
-        UserBorrowedBooks text
-        );
-    '''
-    Librarysql.execute(tosql)
-except Exception as error:
-    print(error)
-
-try:
-    tosql = '''
-    Create table log(
-        Time text,
-        Do text
-        );
-    '''
-    systemlog.execute(tosql)
-except Exception as error:
-    print(error)
-
+    try:
+        tosql = '''
+        Create table log(
+            Time text,
+            Do text
+            );
+        '''
+        systemlog.execute(tosql)
+    except Exception as error:
+        print(error)
+jianli_lianjie()
 class Library:
     def __init__(self):
+        self.info_queue = queue.Queue()
         pass
 #日志添加
     def Add_Log(self,log):
@@ -205,8 +219,11 @@ class Library:
     def Save_Book(self,book:list):
         print(">Library>Save_Book()")
         tosql = '''
-        INSERT into books values(?,?,?,?,?,?,?)
+        INSERT into books values(?,?,?,?,?,?,?,?)
         '''
+        ti = ""
+        for i in str(time.time()).split('.'):
+            ti += i
         msgtosql = (
             book[0],
             book[1],
@@ -214,7 +231,8 @@ class Library:
             book[3],
             book[4],
             book[5],
-            book[6])
+            book[6],
+            ti)
         Librarysql.execute(tosql,msgtosql)
         Librarysql.commit()
         print(">Library>Save_Book()-R:Save Ok!")
@@ -254,18 +272,19 @@ class Library:
 
 
 #删除书籍
-    def Delete_Book(self,bookname):
-        print(f">Library>Del_Book({bookname})->Library>Del_Book(book)")
-        self.Add_Log(f"删除书籍 {bookname}")
-        self.Del_Book(bookname)
+    def Delete_Book(self,id):
+        print(f">Library>Del_Book({id})->Library>Del_Book(book)")
+        self.Add_Log(f"删除书籍 {id}")
+        self.Del_Book(id)
 
-    def Del_Book(self,isbn):
+    def Del_Book(self,id):
         print(">Library>Del_Book()")
         tosql = '''
-        DELETE from books where isbn =?
+        DELETE from books where id =?
         '''
-        Librarysql.execute(tosql,(isbn))
+        Librarysql.execute(tosql,(id,))
         Librarysql.commit()
+        self.Add_Log(f"删除书籍 {id}")
         print(">Library>Del_Book()-R:Del Ok!")
 
 #列出书籍
@@ -306,7 +325,7 @@ class Library:
         else:
             return False
 #借书
-    def Borrow_Book(self,isbn:str,usermsg:list):
+    def Borrow_Book(self,isbn:str,usermsg:list,save_history=False):
         print(f">Library>Borrow_Book({isbn})")
         #检查inventory并更新inventory
         tosql = '''
@@ -321,62 +340,94 @@ class Library:
                 print(f">Library>Borrow_Book()-R:Have No More {isbn} Book!")
                 return "这本书借完了"
             else:
-                if self.Login_User_Has_Book(usermsg,isbn) == False:
+                if usermsg != []:
+                    if self.Login_User_Has_Book(usermsg,isbn) == False:
+                        #修改inventory
+                        tosql = '''
+                        UPDATE books SET inventory =? where isbn =?
+                        '''
+                        Librarysql.execute(tosql,(BookMsg[6]-1,isbn))
+                        Librarysql.commit()
+
+                        #添加借书borrow历史记录
+                        if save_history:
+                            tosql = '''
+                            INSERT into borrow values(?,?,?,?,?,?,?,?,?,?)
+                            '''
+                            msgtosql = (
+                                BookMsg[0],
+                                BookMsg[1],
+                                BookMsg[2],
+                                BookMsg[3],
+                                isbn,
+                                datetime.datetime.now(),
+                                datetime.datetime.now()+datetime.timedelta(seconds=20),
+                                usermsg[0],
+                                usermsg[1],
+                                usermsg[2])
+                            Librarysql.execute(tosql,msgtosql)
+                            Librarysql.commit()
+
+                            #添加借书历史borrowhistory记录
+                            self.Add_Borrow_History(msgtosql,isbn)
+                            #添加User借阅信息
+                            newreadbookslist = json.loads(usermsg[3])
+                            borrowedbookslist = json.loads(usermsg[5])
+                            print("===newreadbookslist========")
+                            print(newreadbookslist)
+                            print(type(newreadbookslist))
+                            print("===newreadbookslist========")
+                            newreadbookslist.append(isbn)
+                            if isbn not in borrowedbookslist:
+                                borrowedbookslist.append(isbn)
+                            print("=add==newreadbookslist========")
+                            print(newreadbookslist)
+                            print("================================")
+                            self.Add_User_Readsbookslist(usermsg,newreadbookslist,borrowedbookslist)
+                            #添加User借阅记录
+                            self.Add_Log(f"User {usermsg} 借阅了 {BookMsg} 书籍")
+                        print(f">Library>Borrow_Book()-R:Borrow {isbn} Book!")
+                        return "借书成功"
+                    else:
+                        print(f">Library>Borrow_Book()-R:You Have Already Borrowed {isbn} Book!")
+                        return "你已经借过这本书了"
+                elif usermsg == []:
                     #修改inventory
                     tosql = '''
                     UPDATE books SET inventory =? where isbn =?
                     '''
                     Librarysql.execute(tosql,(BookMsg[6]-1,isbn))
                     Librarysql.commit()
+                    if save_history:
+                        tosql = '''
+                            INSERT into borrow values(?,?,?,?,?,?,?,?,?,?)
+                            '''
+                        msgtosql = (
+                            BookMsg[0],
+                            BookMsg[1],
+                            BookMsg[2],
+                            BookMsg[3],
+                            isbn,
+                            datetime.datetime.now(),
+                            datetime.datetime.now()+datetime.timedelta(seconds=20),
+                            "老师",
+                            "",
+                            "")
+                        Librarysql.execute(tosql,msgtosql)
+                        Librarysql.commit()
+                        self.Add_Log(f"User 老师 借阅了 {BookMsg} 书籍")
+                        #添加借书历史borrowhistory记录
+                        self.Add_Borrow_History(msgtosql,isbn)
 
-                    #添加借书borrow历史记录
-                    tosql = '''
-                    INSERT into borrow values(?,?,?,?,?,?,?,?,?,?)
-                    '''
-                    msgtosql = (
-                        BookMsg[0],
-                        BookMsg[1],
-                        BookMsg[2],
-                        BookMsg[3],
-                        isbn,
-                        datetime.datetime.now(),
-                        datetime.datetime.now()+datetime.timedelta(seconds=20),
-                        usermsg[0],
-                        usermsg[1],
-                        usermsg[2])
-                    Librarysql.execute(tosql,msgtosql)
-                    Librarysql.commit()
-
-                    #添加借书历史borrowhistory记录
-                    self.Add_Borrow_History(msgtosql,isbn)
-                    #添加User借阅信息
-                    newreadbookslist = json.loads(usermsg[3])
-                    borrowedbookslist = json.loads(usermsg[5])
-                    print("===newreadbookslist========")
-                    print(newreadbookslist)
-                    print(type(newreadbookslist))
-                    print("===newreadbookslist========")
-                    newreadbookslist.append(isbn)
-                    if isbn not in borrowedbookslist:
-                        borrowedbookslist.append(isbn)
-                    print("=add==newreadbookslist========")
-                    print(newreadbookslist)
-                    print("================================")
-                    self.Add_User_Readsbookslist(usermsg,newreadbookslist,borrowedbookslist)
-                    #添加User借阅记录
-                    self.Add_Log(f"User {usermsg} 借阅了 {BookMsg} 书籍")
                     print(f">Library>Borrow_Book()-R:Borrow {isbn} Book!")
                     return "借书成功"
-                else:
-                    print(f">Library>Borrow_Book()-R:You Have Already Borrowed {isbn} Book!")
-                    return "你已经借过这本书了"
         else:
             print(f">Library>Borrow_Book()-R:No {isbn} Book!")
             return "没有这本书"
         
 
 #还书
-    def Return_Book(self,isbn,usermsg:list):
+    def Return_Book(self,isbn,usermsg:list,save_history=False):
         print(f">Library>Return_Book({isbn})")
         tosql = '''
         SELECT * from books where isbn =?
@@ -385,27 +436,45 @@ class Library:
         BookMsg = cursor.fetchall()
         print(f"BookMsg={BookMsg}")
         if len(BookMsg)!= 0:
-            #修改inventory
-            tosql = '''
-            UPDATE books SET inventory =? where isbn =?
-            '''
-            Librarysql.execute(tosql,(BookMsg[0][6]+1,isbn))
-            Librarysql.commit()
-            print("删除借书记录")
-            #删除借书记录borrow
-            tosql = '''DELETE from borrow where isbn =?'''
-            msgtosql = (isbn,)
-            Librarysql.execute(tosql,msgtosql)
-            Librarysql.commit()
-            print("========================")
-            #添加User还书记录
-            self.Add_Return_History(isbn)
-            newreadbookslist = json.loads(usermsg[3])
-            newreadbookslist.remove(isbn)
-            borrowedbookslist = json.loads(usermsg[5])
-            self.Add_User_Readsbookslist(usermsg,newreadbookslist,borrowedbookslist)
-            self.Add_Log(f"User {usermsg} 还了 {BookMsg} 书籍")
-            return "还书成功"
+            if usermsg != []:
+                #修改inventory
+                tosql = '''
+                UPDATE books SET inventory =? where isbn =?
+                '''
+                Librarysql.execute(tosql,(BookMsg[0][6]+1,isbn))
+                Librarysql.commit()
+                if save_history:
+                    print("删除还书记录")
+                    #删除还书记录borrow
+                    tosql = '''DELETE from borrow where isbn =? and Readername=? and Readerid=? and Readerclass=?'''
+                    msgtosql = (isbn,usermsg[0],usermsg[1],usermsg[2])
+                    Librarysql.execute(tosql,msgtosql)
+                    Librarysql.commit()
+                    print("========================")
+                    #添加User还书记录
+                    self.Add_Return_History(isbn)
+                    newreadbookslist = json.loads(usermsg[3])
+                    newreadbookslist.remove(isbn)
+                    borrowedbookslist = json.loads(usermsg[5])
+                    self.Add_Log(f"User {usermsg} 还了 {BookMsg} 书籍")
+                self.Add_User_Readsbookslist(usermsg,newreadbookslist,borrowedbookslist)
+                return "还书成功"
+            else:
+                #修改inventory
+                tosql = '''
+                UPDATE books SET inventory =? where isbn =?
+                '''
+                Librarysql.execute(tosql,(BookMsg[0][6]+1,isbn))
+                Librarysql.commit()
+                if save_history:
+                    print("删除还书记录")
+                    #删除还书记录borrow
+                    tosql = '''DELETE from borrow where isbn =? and Readername=? and Readerid=? and Readerclass=?'''
+                    msgtosql = (isbn,"老师","","")
+                    Librarysql.execute(tosql,msgtosql)
+                    Librarysql.commit()
+                    print("========================")
+                return "还书成功"
         else:
             print(f">Library>Return_Book()-R:No {isbn} Book!")
             return "没有这本书"
@@ -487,7 +556,7 @@ class Library:
     def Login_User(self, username: str, userid: int, userclass: int, password: str) -> list:
         print(f">Library>Login_User(name={username},class={userclass},id={userid},p={password})")
         # 加密用户输入的密码
-        encrypted_password = password  # 假设 mimajiami 是你的加密函数
+        encrypted_password = password
         username = str(username)
         userclass = int(userclass)
         userid = int(userid)
@@ -585,14 +654,24 @@ class Library:
         return cursor.fetchall()
     
 
-    def cv_for_student(self)->list|str:
-
+    def cv_for_student(self)->list:
+        global thread 
+        thread = threading.Thread(target=self._cv_for_student)
+        thread.start()
+        thread.join()
+        return self.info_queue.get()
+    
+    def _cv_for_student(self):
+        global cursor1
+        global thread
         print("打开摄像头扫描学生码")
         cap = cv2.VideoCapture(0)
 
         if not cap.isOpened():
             print("Error: Could not open video source.")
+            self.info_queue.put([])
             return
+        jianli_lianjie(True)
         while True:
             # 读取帧
             ret, frame = cap.read()
@@ -602,7 +681,7 @@ class Library:
             # 转换为灰度图像
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # 检测条形码
+            # 检测二维码
             barcodes = pyzbar.decode(gray)
             for barcode in barcodes:
                 # 提取条形码数据
@@ -616,24 +695,30 @@ class Library:
                 if barcode_data:
                     time.sleep(1)
                     umsg=lb.Decrypt_User_Info(barcode_data)
+                    print(umsg)
                     print("====student info====")
                     print(f"name:{umsg[0]}")
                     print(f"id:{umsg[1]}")
                     print(f"class:{umsg[2]}")
                     print(f"encrypt_password:{umsg[3]}")
                     print("====student info====")
-                    Login_User_Info = lb.Login_User(umsg[0],umsg[2],umsg[1],umsg[3])
-                    print(Login_User_Info)
-                    if Login_User_Info['code'] == 200:
-                        return umsg
-                    if Login_User_Info['code'] == 404:
-                        return Login_User_Info['msg']
-
-    def cv_for_book(self)->list|str:
+                    self.info_queue.put([umsg[0], umsg[1], umsg[2], umsg[3]])
+                    cap.release()  # 释放摄像头资源
+                    cv2.destroyAllWindows()  # 关闭所有OpenCV窗口
+                    return
+    def cv_for_book(self)->list:
+        global thread 
+        thread = threading.Thread(target=self._cv_for_book)
+        thread.start()
+        thread.join()
+        return self.info_queue.get()
+    def _cv_for_book(self)->dict:
+        global cursor1
+        global thread
         print("打开摄像头扫描书籍")
                 # 打开摄像头
         cap = cv2.VideoCapture(0)
-
+        jianli_lianjie(True)
         if not cap.isOpened():
             print("Error: Could not open video source.")
             return
@@ -661,19 +746,15 @@ class Library:
                     # 释放摄像头并关闭窗口
                     cap.release()
                     re =lb.Find_book_by_isbn(barcode_data)
-                    if re['code'] == 200:
-                        self.cheak_and_add_to_r_tree(re['msg'][0],barcode_data)
-                    elif re['code'] == 404:
-                        messagebox.showerror(title='错误', message=re['msg'])
+                    self.info_queue.put(re)
                     cv2.destroyAllWindows()
+                    return
             cv2.imshow("扫描书籍", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cap.release()
                 cv2.destroyAllWindows()
                 return 0
-        cap.release()
-        cv2.destroyAllWindows()
-        return barcode_data
+        
     
     def delete_all_book(self):
         print(">library>delete_all_book()")
