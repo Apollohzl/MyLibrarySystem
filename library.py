@@ -184,6 +184,7 @@ class Library:
         tosql = '''
         UPDATE users set UserBorrowBooks=? where Username =? and Userid =? and Userclass =? and UserPassword =?
         '''
+        print(json.dumps(readingbooks))
         msgtosql = (
             json.dumps(readingbooks),
             user[0],
@@ -196,6 +197,7 @@ class Library:
         tosql = '''
         UPDATE users set UserBorrowedBooks=? where Username =? and Userid =? and Userclass =? and UserPassword =?
         '''
+        print(json.dumps(borrowedbooks))
         msgtosql = (
             json.dumps(borrowedbooks),
             user[0],
@@ -507,8 +509,10 @@ class Library:
             self.Add_Log(f"User搜索 {searchname}")
             return results
         else:
+
             return books
     
+    "fgj"
     def Find_book_by_isbn(self,isbn:int)->dict:
         print(f">Library>Find_book_by_isbn({isbn})")
         tosql = '''SELECT * from books where isbn =?'''
@@ -659,25 +663,105 @@ class Library:
 
 #User搜索name
     def find_user_by_name(self,name)->list:
+        global thread 
+        thread = threading.Thread(target=self._find_user_by_name(name))
+        thread.start()
+        thread.join()
+        return self.info_queue.get()
+    
+
+    def _find_user_by_name(self,name):
         print(f">Library>find_user_by_name({name})")
+        jianli_lianjie(True)
+        results = []
         tosql = '''
-        SELECT * from users`
+        SELECT * from users
         '''
         cursor = Librarysql.execute(tosql)
         users = cursor.fetchall()
-        print(users)
+        
+        if name != "":
+            for user in users:
+                if (name in user[0]):
+                    results.append(user)
+            for user in users:
+                for i in range(len(name)-1):
+                    ToSname = name[i]+name[i+1]
+                    if ToSname in user[0]:
+                        if user not in results:
+                            results.append(user)
+            for user in users:
+                for word in name:
+                    if word in user[0]:
+                        if user not in results:
+                            results.append(user)
+        else:
+            results = users
+        self.info_queue.put(results)
+        return 
 
-
-#注销User，提供User名，id，class注销
-    def Delete_User(self,username,userid,userclass):
-        print(f">Library>Delete_User({username},{userid},{userclass})")
+#用户搜索class
+    def find_user_by_class(self,class_)->list:
+        global thread 
+        thread = threading.Thread(target=self._find_user_by_class(class_))
+        thread.start()
+        thread.join()
+        return self.info_queue.get()
+    
+    def _find_user_by_class(self,class_):
+        print(f">Library>find_user_by_class({class_})")
+        jianli_lianjie(True)
+        results = []
         tosql = '''
-        DELETE from users where Username =? and Userid =? and Userclass =?
+        SELECT * from users
+        '''
+        cursor = Librarysql.execute(tosql)
+        users = cursor.fetchall()
+        if class_ != "":
+            for user in users:
+                    if (class_ == str(user[2])):
+                        results.append(user)
+        else:
+            results = users
+        self.info_queue.put(results)
+        return 
+
+#搜索用户id
+    def find_user_by_id(self,id_)->list:
+        global thread 
+        thread = threading.Thread(target=self._find_user_by_id(id_))
+        thread.start()
+        thread.join()
+        return self.info_queue.get()
+    
+    def _find_user_by_id(self,id_):
+        print(f">Library>find_user_by_id({id_})")
+        jianli_lianjie(True)
+        results = []
+        tosql = '''
+        SELECT * from users
+        '''
+        cursor = Librarysql.execute(tosql)
+        users = cursor.fetchall()
+        if id_ != "":
+            for user in users:
+                    if (id_ == str(user[1])):
+                        results.append(user)
+        else:
+            results = users
+        self.info_queue.put(results)
+        return 
+#注销User，提供User名，id，class注销
+    def Delete_User(self,username,userid,userclass,userpassword):
+        print(f">Library>Delete_User({username},{userid},{userclass},{userpassword})")
+        tosql = '''
+        DELETE from users where Username =? and Userid =? and Userclass =? and UserPassword =?
         '''
         msgtosql = (
             username,
             userid,
-            userclass)
+            userclass,
+            userpassword)
         Librarysql.execute(tosql,msgtosql)
         Librarysql.commit()
         self.Add_Log(f"User {username} 注销")

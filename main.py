@@ -2,7 +2,7 @@ from text import root
 from datetime import datetime
 import time
 # from developer2 import Developer
-# root.mainloop()
+root.mainloop()
 # Developer.mainloop()
 
 
@@ -18,11 +18,3 @@ import time
 
 # # 运行主循环
 # root.mainloop()
-def a(student_name):
-    if student_name and not student_name.isspace():
-        # 字符串不为空且不全是空格
-        print(True)
-    else:
-        # 字符串为空或全是空格
-        print(False)
-a("   ")

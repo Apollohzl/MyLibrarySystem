@@ -164,7 +164,7 @@ class App:
                         for isbn in User_Want_return_book_list:
                             if isbn in User_Borrowed_Books_List:
                                 User_Borrowed_Books_List.remove(isbn)
-                                lb.Return_Book(isbn,User_Info)
+                                lb.Return_Book(isbn,User_Info,save_history=True)
                                 Show_Msg_to+=f"{lb.Find_book_by_isbn(isbn)['msg'][0]} 还书成功\n"
                                 pass
                             else:
@@ -517,7 +517,7 @@ class App:
                         Borrow_book_ok = []
                         showusermsg = []
                         for borrow_book_isbn in self.make_borrowbook_list():
-                            msg = lb.Borrow_Book(borrow_book_isbn,User_Info)
+                            msg = lb.Borrow_Book(borrow_book_isbn,User_Info,save_history=True)
                             Borrow_book_ok.append(msg)
                         print("==================")
                         l = 0

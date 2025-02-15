@@ -136,7 +136,13 @@ class LibrarySystem(maliang.Tk):
         self.amend_book_id_second_msg = ""
         self.add_student_qrcode_save_path = "f:\\py\\mylibrarysystem\\学生信息\\"
         self.add_student_show_qrcode_when_finish = True
-
+        self.delete_student_name = ""
+        self.delete_student_class = ""
+        self.delete_student_id = ""
+        self.delete_student_password = ""
+        self.delete_student_borrow_books = ""
+        self.delete_student_borrowed_books = ""
+        self.delete_student_now_show_students_list = []
 
 
 
@@ -165,7 +171,9 @@ class LibrarySystem(maliang.Tk):
         self.borrow_return_menu = tk.Menu(self.head_menus, tearoff=0)
         self.borrow_return_menu.add_command(label="单本书借阅", command=self.borrow_book)
         self.borrow_return_menu.add_command(label="单本书还书", command=self.return_book)
-        self.head_menus.add_cascade(label="借阅还书", menu=self.borrow_return_menu)
+        self.borrow_return_menu.add_separator()
+        self.borrow_return_menu.add_command(label="借阅信息总查询", command=self.borrow_and_return_query)
+        self.head_menus.add_cascade(label="关于借阅", menu=self.borrow_return_menu)
 
         self.about_book_menu = tk.Menu(self.head_menus, tearoff=0)
         self.about_book_menu.add_command(label="Excel导入所有书籍", command=self.import_book)
@@ -181,6 +189,10 @@ class LibrarySystem(maliang.Tk):
         self.about_student_menu.add_command(label="注销学生信息", command=self.delete_student_info)
         self.about_student_menu.add_command(label="修改学生信息", command=self.amend_student_info)
         self.head_menus.add_cascade(label="关于学生", menu=self.about_student_menu)
+
+        self.about_log_menu = tk.Menu(self.head_menus, tearoff=0)
+        self.about_log_menu.add_command(label="导出日志", command=self.export_log)
+        self.head_menus.add_cascade(label="其它", menu=self.about_log_menu)
 
 
         cv = maliang.Canvas(self.root,auto_zoom=True)
@@ -226,14 +238,6 @@ class LibrarySystem(maliang.Tk):
             self.now_time.set(text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             # print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             cv.after(1000, update_time)
-        
-        
-        
-
-
-
-        
-        
         self.root.after(1000, update_time)
         # maliang.Button(cv, (20, 20), text="Button", command=lambda: print("Click"))
         # self.a =maliang.CheckBox(cv, (20, 20))
@@ -242,15 +246,15 @@ class LibrarySystem(maliang.Tk):
         # maliang.Text(cv, (60, 135), text="CheckBox", anchor="w")
         # maliang.Button(cv, (20, 220), text="Button", command=lambda:self.p())
 
-
-
-
         self.root.protocol("WM_DELETE_WINDOW", lambda:exit())
         self.root.config(menu=self.head_menus)
         self.root.center()
-        self.root.mainloop()
-    
 
+
+
+        
+
+        self.root.mainloop()
     
     def root_tree_click(self,event=None):
         pass
@@ -1509,9 +1513,224 @@ class LibrarySystem(maliang.Tk):
 
 
     def delete_student_info(self):
+        self.root.withdraw()
+        self.delete_student_window = maliang.Toplevel(self.root,(1000,800),title="注销学生信息")
+        self.delete_student_window.center()
+        self.delete_student_window.iconbitmap(mypath("favicon.ico"))
+
+        self.delete_student_window__Canvas = maliang.Canvas(self.delete_student_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.delete_student_window__Canvas.place(x=0,y=0,width=1000,height=800)
+
+        self.delete_student_back_button = maliang.Button(self.delete_student_window__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.delete_student_window))
+
+        def print_option_selected(index):
+            print(f"{['用户名搜索',"班级搜索","座号搜索","二维码扫描","扫描枪扫描"][index]} {index}")
+        self.delete_student_search_type_OptionButton = maliang.OptionButton(self.delete_student_window__Canvas,(0,50), size=(100,35),fontsize=15,text=("用户名搜索", "班级搜索", "座号搜索","二维码扫描","扫描枪扫描"),command=print_option_selected,default=0)
+        self.delete_student_search_button = maliang.Button(self.delete_student_window__Canvas,(100,50),size=(100,35),fontsize=15,text="搜索", anchor="nw", command=lambda:self.delete_student_search_student())
+        self.delete_student_inputbox = maliang.InputBox(self.delete_student_window__Canvas,(200,50),size=(800,35))
+        self.delete_student_inputbox.bind("<Return>",self.delete_student_search_student)
+        self.delete_student_opencv_button = maliang.Button(self.delete_student_window__Canvas,(0,100),size=(200,50),fontsize=18,text="扫描学生二维码", anchor="nw", command=lambda:self.delete_student_opencv_for_student())
+
+        self.delete_student_show_students_tree = ttk.Treeview(self.delete_student_window__Canvas,columns=("姓名","班级","座号"),show="headings")
+        self.delete_student_show_students_tree.heading("姓名", text="姓名")
+        self.delete_student_show_students_tree.heading("班级", text="班级")
+        self.delete_student_show_students_tree.heading("座号", text="座号")
+        self.delete_student_show_students_tree.column("姓名", width=100)
+        self.delete_student_show_students_tree.column("班级", width=100)
+        self.delete_student_show_students_tree.column("座号", width=100)
+        self.delete_student_show_students_tree.place(x=210,y=100,width=750,height=500)
+        self.delete_student_show_students_tree.bind("<ButtonRelease-1>",self.delete_student_show_students_tree_click)
+
+        self.delete_student_student_msg_part_student_name_text = maliang.Text(self.delete_student_window__Canvas,(0,170),text="姓名：", anchor="nw")
+        self.delete_student_student_msg_part_student_name_Text = maliang.Text(self.delete_student_window__Canvas,(50,170),anchor="nw")
+
+        self.delete_student_student_msg_part_student_class_text = maliang.Text(self.delete_student_window__Canvas,(0,200),text="班级：", anchor="nw")
+        self.delete_student_student_msg_part_student_class_Text = maliang.Text(self.delete_student_window__Canvas,(50,200),anchor="nw")
+
+        self.delete_student_student_msg_part_student_id_text = maliang.Text(self.delete_student_window__Canvas,(0,230),text="座号：", anchor="nw")
+        self.delete_student_student_msg_part_student_id_Text = maliang.Text(self.delete_student_window__Canvas,(50,230),anchor="nw")
+
+        self.delete_student_student_msg_part_student_borrowbooks_text = maliang.Text(self.delete_student_window__Canvas,(0,260),text="正在借阅的图书：", anchor="nw")
+        self.delete_student_student_msg_part_student_borrowbooks_tree = ttk.Treeview(self.delete_student_window__Canvas,columns=("书名"),show="headings")
+        self.delete_student_student_msg_part_student_borrowbooks_tree.heading("书名", text="书名")
+        self.delete_student_student_msg_part_student_borrowbooks_tree.column("书名", width=200)
+        self.delete_student_student_msg_part_student_borrowbooks_tree.place(x=5,y=290,width=200,height=150)
+
+        self.delete_student_student_msg_part_student_borrowedbooks_text = maliang.Text(self.delete_student_window__Canvas,(0,450),text="已借阅的图书：", anchor="nw")
+        self.delete_student_student_msg_part_student_borrowedbooks_tree = ttk.Treeview(self.delete_student_window__Canvas,columns=("书名"),show="headings")
+        self.delete_student_student_msg_part_student_borrowedbooks_tree.heading("书名", text="书名")
+        self.delete_student_student_msg_part_student_borrowedbooks_tree.column("书名", width=200)
+        self.delete_student_student_msg_part_student_borrowedbooks_tree.place(x=5,y=480,width=200,height=310)
+
+        self.delete_student_delete_button = maliang.Button(self.delete_student_window__Canvas,(500,750),size=(100,50),fontsize=15,text="注销", anchor="nw", command=lambda:self.delete_student_button_click())
+        
+        self.delete_student_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.delete_student_window))
+    
+
+    def delete_student_search_student(self,event=None):
+        print(self.delete_student_inputbox.get())
+        if self.delete_student_search_type_OptionButton.get() == 0:
+            result = lb.find_user_by_name(self.delete_student_inputbox.get())
+            for item in self.delete_student_show_students_tree.get_children():
+                self.delete_student_show_students_tree.delete(item)
+            self.delete_student_now_show_students_list = []
+            for item in result:
+                self.delete_student_show_students_tree.insert("", "end", values=(item[0],item[2],item[1]))
+                self.delete_student_now_show_students_list.append(item)
+            print(result)
+            pass
+        elif self.delete_student_search_type_OptionButton.get() == 1:
+            result = lb.find_user_by_class(self.delete_student_inputbox.get())
+            for item in self.delete_student_show_students_tree.get_children():
+                self.delete_student_show_students_tree.delete(item)
+            self.delete_student_now_show_students_list = []
+            for item in result:
+                self.delete_student_show_students_tree.insert("", "end", values=(item[0],item[2],item[1]))
+                self.delete_student_now_show_students_list.append(item)
+            print(result)
+            pass
+        elif self.delete_student_search_type_OptionButton.get() == 2:
+            result = lb.find_user_by_id(self.delete_student_inputbox.get())
+            for item in self.delete_student_show_students_tree.get_children():
+                self.delete_student_show_students_tree.delete(item)
+            self.delete_student_now_show_students_list = []
+            for item in result:
+                self.delete_student_show_students_tree.insert("", "end", values=(item[0],item[2],item[1]))
+                self.delete_student_now_show_students_list.append(item)
+            print(result)
+            pass
+            
+        elif self.delete_student_search_type_OptionButton.get() == 4:
+            student_msg = self.delete_student_inputbox.get()
+            jianli_lianjie()
+            student_msg = lb.Decrypt_User_Info(student_msg)
+            student_msg = lb.Login_User(student_msg[0], student_msg[2], student_msg[1], student_msg[3])
+            print(student_msg)
+            if student_msg['code'] == 200:
+                for item in self.delete_student_show_students_tree.get_children():
+                    self.delete_student_show_students_tree.delete(item)
+                self.delete_student_now_show_students_list = []
+                student_msg = student_msg['msg'][0]
+                print(student_msg)
+                name = student_msg[0]
+                class_ = student_msg[2]
+                id_ = student_msg[1]
+                borrowbooks = student_msg[3]
+                borrowedbooks = student_msg[5]
+                password = student_msg[4]
+                self.delete_student_show_students_tree.insert("", "end", values=(name,class_,id_))
+                self.delete_student_now_show_students_list.append(student_msg)
+            else:
+                for item in self.delete_student_show_students_tree.get_children():
+                    self.delete_student_show_students_tree.delete(item)
+                self.delete_student_now_show_students_list = []
+                messagebox.showerror("错误", "未找到该学生")
+
+
+
+    def delete_student_opencv_for_student(self):
+        if self.delete_student_search_type_OptionButton.get() == 3:
+            student_msg = lb.cv_for_student()
+            jianli_lianjie()
+            student_msg = lb.Login_User(student_msg[0], student_msg[2], student_msg[1], student_msg[3])
+            print(student_msg)
+            if student_msg['code'] == 200:
+                student_msg = student_msg['msg'][0]
+                print(student_msg)
+                name = student_msg[0]
+                class_ = student_msg[2]
+                id_ = student_msg[1]
+                borrowbooks = student_msg[3]
+                borrowedbooks = student_msg[5]
+                password = student_msg[4]
+                self.delete_student_show_students_tree.insert("", "end", values=(name,class_,id_))
+                self.delete_student_now_show_students_list.append(student_msg)
+                
+        else:
+            for item in self.delete_student_show_students_tree.get_children():
+                self.delete_student_show_students_tree.delete(item)
+            self.delete_student_now_show_students_list = []
+            messagebox.showerror("错误", "未找到该学生")
+
+
+    def delete_student_show_students_tree_click(self,event):
+        selected_item = self.delete_student_show_students_tree.selection()[0]
+        book_info_in_tree = self.delete_student_show_students_tree.item(selected_item, "values")
+        index = self.delete_student_show_students_tree.index(selected_item)
+        book_info = self.delete_student_now_show_students_list[index]
+        print(book_info)
+        self.delete_student_name = book_info[0]
+        self.delete_student_class = book_info[2]
+        self.delete_student_id = book_info[1]
+        self.delete_student_borrowbooks = json.loads(book_info[3])
+        self.delete_student_borrowedbooks = json.loads(book_info[5])
+        self.delete_student_password = book_info[4]
+        self.update_delete_student_msg_part()
+
+    def update_delete_student_msg_part(self):
+        for item in self.delete_student_student_msg_part_student_borrowbooks_tree.get_children():
+            self.delete_student_student_msg_part_student_borrowbooks_tree.delete(item)
+        for item in self.delete_student_student_msg_part_student_borrowedbooks_tree.get_children():
+            self.delete_student_student_msg_part_student_borrowedbooks_tree.delete(item)
+        self.delete_student_student_msg_part_student_name_Text.set(str(self.delete_student_name))
+        self.delete_student_student_msg_part_student_class_Text.set(str(self.delete_student_class))
+        self.delete_student_student_msg_part_student_id_Text.set(str(self.delete_student_id))
+        for borrowbook in self.delete_student_borrowbooks:
+            msg = lb.Find_book_by_isbn(borrowbook)
+            if msg['code'] == 200:
+                msg = msg['msg'][0]
+                self.delete_student_student_msg_part_student_borrowbooks_tree.insert("", "end", values=(msg))
+            else:
+                self.delete_student_student_msg_part_student_borrowbooks_tree.insert("", "end", values=(f"{borrowbook} (搜索失败)"))
+        for borrowedbook in self.delete_student_borrowedbooks:
+            msg = lb.Find_book_by_isbn(borrowedbook)
+            if msg['code'] == 200:
+                msg = msg['msg'][0]
+                self.delete_student_student_msg_part_student_borrowedbooks_tree.insert("", "end", values=(msg))
+            else:
+                self.delete_student_student_msg_part_student_borrowedbooks_tree.insert("", "end", values=(f"{borrowedbook} (搜索失败)"))
+    
+    def delete_student_button_click(self):
+        if messagebox.askyesno("提示", "确认注销该学生信息？"):
+            name =self.delete_student_name
+            id_ = self.delete_student_id
+            class_ = self.delete_student_class
+            password = self.delete_student_password
+            lb.Delete_User(name, id_, class_, password)
+            messagebox.showinfo("提示", "注销成功")
+            self.goback(self.delete_student_window)
+    def amend_student_info(self):
+        self.root.withdraw()
+        self.amend_student_window = maliang.Toplevel(self.root,(1000,800),title="修改学生信息")
+        self.amend_student_window.iconbitmap(mypath("favicon.ico"))
+        self.amend_student_window.center()
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self.amend_student_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.amend_student_window))  
+
+
+
+
+
+
         pass
 
-    def amend_student_info(self):
+    def borrow_and_return_query(self):
+        pass
+    def export_log(self):
         pass
 Developer = LibrarySystem()
 
