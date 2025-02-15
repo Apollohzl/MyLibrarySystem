@@ -62,6 +62,8 @@ import openpyxl
 from library import lb
 from library import *
 import time
+from tkinter import font
+import re
 
 # global Librarysql
 # global systemlog
@@ -115,7 +117,25 @@ class LibrarySystem(maliang.Tk):
         self._one_delete_book_isbn = ""
         self._one_delete_book_inventory = ""
         self._one_delete_book_id = ""
-
+        self.now_show_amend_books_list = []
+        self.amend_book_bookname_first_msg = ""
+        self.amend_book_author_first_msg = ""
+        self.amend_book_press_first_msg = ""
+        self.amend_book_publicationTime_first_msg = ""
+        self.amend_book_bookInfo_first_msg = ""
+        self.amend_book_isbn_first_msg = ""
+        self.amend_book_inventory_first_msg = ""
+        self.amend_book_id_first_msg = ""
+        self.amend_book_bookname_second_msg = ""
+        self.amend_book_author_second_msg = ""
+        self.amend_book_press_second_msg = ""
+        self.amend_book_publicationTime_second_msg = ""
+        self.amend_book_bookInfo_second_msg = ""
+        self.amend_book_isbn_second_msg = ""
+        self.amend_book_inventory_second_msg = ""
+        self.amend_book_id_second_msg = ""
+        self.add_student_qrcode_save_path = "f:\\py\\mylibrarysystem\\学生信息\\"
+        self.add_student_show_qrcode_when_finish = True
 
 
 
@@ -133,22 +153,67 @@ class LibrarySystem(maliang.Tk):
 
         self.root = maliang.Tk(size=(800,600),title="图书馆终端")
         self.root.iconbitmap(mypath("favicon.ico"))
+        self.root.center()
         self.head_menus = tk.Menu(self.root)
+
+        self.system_menu = tk.Menu(self.head_menus, tearoff=0)
+        self.system_menu.add_command(label="退出", command=lambda:exit())
+        self.head_menus.add_cascade(label="系统", menu=self.system_menu)
+
+
 
         self.borrow_return_menu = tk.Menu(self.head_menus, tearoff=0)
         self.borrow_return_menu.add_command(label="单本书借阅", command=self.borrow_book)
         self.borrow_return_menu.add_command(label="单本书还书", command=self.return_book)
         self.head_menus.add_cascade(label="借阅还书", menu=self.borrow_return_menu)
 
-        self.book_import_menu = tk.Menu(self.head_menus, tearoff=0)
-        self.book_import_menu.add_command(label="Excel导入所有书籍", command=self.import_book)
-        self.book_import_menu.add_command(label="清空所有书籍", command=self.delete_all_book)
-        self.book_import_menu.add_separator()
-        self.book_import_menu.add_command(label="删除单本图书", command=self.delete_one_book)
-        self.book_import_menu.add_separator()
-        self.book_import_menu.add_command(label="修改书籍信息", command=self.amend_book_info)
+        self.about_book_menu = tk.Menu(self.head_menus, tearoff=0)
+        self.about_book_menu.add_command(label="Excel导入所有书籍", command=self.import_book)
+        self.about_book_menu.add_command(label="清空所有书籍", command=self.delete_all_book)
+        self.about_book_menu.add_separator()
+        self.about_book_menu.add_command(label="删除单本图书", command=self.delete_one_book)
+        self.about_book_menu.add_separator()
+        self.about_book_menu.add_command(label="修改书籍信息", command=self.amend_book_info)
+        self.head_menus.add_cascade(label="关于书籍", menu=self.about_book_menu)
 
-        self.head_menus.add_cascade(label="关于书籍", menu=self.book_import_menu)
+        self.about_student_menu = tk.Menu(self.head_menus, tearoff=0)
+        self.about_student_menu.add_command(label="添加学生信息", command=self.add_student_info)
+        self.about_student_menu.add_command(label="注销学生信息", command=self.delete_student_info)
+        self.about_student_menu.add_command(label="修改学生信息", command=self.amend_student_info)
+        self.head_menus.add_cascade(label="关于学生", menu=self.about_student_menu)
+
+
+        cv = maliang.Canvas(self.root,auto_zoom=True)
+        cv.place(width=1280, height=720,x=0,y=0)
+        self.now_time = maliang.Text(cv,(310,0),text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+        self.now_splite_has_books_show_tree = ttk.Treeview(cv,columns=("书名","作者","出版社","出版时间","书籍介绍","ISBN","库存","id"),show="headings")
+        self.now_splite_has_books_show_tree.heading("书名", text="书名")
+        self.now_splite_has_books_show_tree.heading("作者", text="作者")
+        self.now_splite_has_books_show_tree.heading("出版社", text="出版社")
+        self.now_splite_has_books_show_tree.heading("出版时间", text="出版时间")
+        self.now_splite_has_books_show_tree.heading("书籍介绍", text="书籍介绍")
+        self.now_splite_has_books_show_tree.heading("ISBN", text="ISBN")
+        self.now_splite_has_books_show_tree.heading("库存", text="库存")
+        self.now_splite_has_books_show_tree.heading("id", text="id")
+        self.now_splite_has_books_show_tree.column("书名", width=90)
+        self.now_splite_has_books_show_tree.column("作者", width=90)
+        self.now_splite_has_books_show_tree.column("出版社", width=80)
+        self.now_splite_has_books_show_tree.column("出版时间", width=60)
+        self.now_splite_has_books_show_tree.column("书籍介绍", width=80)
+        self.now_splite_has_books_show_tree.column("ISBN", width=80)
+        self.now_splite_has_books_show_tree.column("库存", width=40)
+        self.now_splite_has_books_show_tree.column("id", width=120)
+        self.now_splite_has_books_show_tree.place(x=10,y=50,width=780,height=400)
+        self.now_splite_has_books_show_tree.bind("<ButtonRelease-1>", self.root_tree_click)
+
+        self.now_splite_has_books_show_tree_refresh_button = maliang.Button(cv,(10,15),(50,30),fontsize=13,text="刷新",command=self.refresh_now_splite_has_books_show_tree)
+        self.refresh_now_splite_has_books_show_tree()
+        
+        
+        
+        
 
         # 添加更多分类菜单
         # self.other_menu = tk.Menu(self.head_menus, tearoff=0)
@@ -157,17 +222,18 @@ class LibrarySystem(maliang.Tk):
         # self.head_menus.add_cascade(label="其他", menu=self.other_menu)
 
         
-        cv = maliang.Canvas(self.root,auto_zoom=True)
-        cv.place(width=1280, height=720,x=0,y=0)
-        self.now_time = maliang.Text(cv,(310,0),text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
         def update_time():
             self.now_time.set(text=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             # print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             cv.after(1000, update_time)
         
-        # cv.place(width=1280, height=720)
-        self.amend_book_info()
+        
+        
+
+
+
+        
+        
         self.root.after(1000, update_time)
         # maliang.Button(cv, (20, 20), text="Button", command=lambda: print("Click"))
         # self.a =maliang.CheckBox(cv, (20, 20))
@@ -180,21 +246,23 @@ class LibrarySystem(maliang.Tk):
 
 
         self.root.protocol("WM_DELETE_WINDOW", lambda:exit())
-
-
-        # self.p()
-        
         self.root.config(menu=self.head_menus)
         self.root.center()
         self.root.mainloop()
     
 
-    def p(self):
-        ab = self.a.get()
-        print(ab)
-
     
+    def root_tree_click(self,event=None):
+        pass
+    def refresh_now_splite_has_books_show_tree(self):
+        print("刷新")
+        now_books_list = lb.Find_Books("")
+        for item in self.now_splite_has_books_show_tree.get_children():
+            self.now_splite_has_books_show_tree.delete(item)
+        for book in now_books_list:
+            self.now_splite_has_books_show_tree.insert("", "end", values=book)
         
+    
 
 
 
@@ -430,6 +498,7 @@ class LibrarySystem(maliang.Tk):
     def goback(self,thing):
         thing.destroy()
         self.root.deiconify()
+        self.refresh_now_splite_has_books_show_tree()
 
     
 
@@ -471,8 +540,19 @@ class LibrarySystem(maliang.Tk):
                     self._import_book_import_excel_row_text.set(f"表格 行:{ws.max_row}")
                     return 0
                 else:
-                    messagebox.showinfo("提示","导入中，请等待提示...")
-                    for i in range(int(self.excel_import_start_row),ws.max_row+1):
+                    
+                    self.jiazai = maliang.Toplevel(self._import_book_,size=(200,200),title="导入中")
+                    self.jiazai.center()
+                    self.jiazai.iconbitmap(mypath("favicon.ico"))
+                    self.jiazai_Canver = maliang.Canvas(self.jiazai,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+                    self.jiazai_Canver.place(x=0,y=0,width=200,height=200)
+                    self.jiazai_Spinner = maliang.Spinner(self.jiazai_Canver,position=(0,0),size=(200,200),auto_update=True)
+                    self.jiazai_jindu_text = maliang.Text(self.jiazai_Canver,position=(40,85),text="进度: ")
+                    all = ws.max_row+1 - int(self.excel_import_start_row)
+                    global start 
+                    start = int(self.excel_import_start_row)
+                    end = ws.max_row
+                    def imp(i):
                         A = str(ws.cell(column=int(self.excel_import_bookname_column),row=i).value)
                         B = str(ws.cell(column=int(self.excel_import_author_column),row=i).value)
                         C = str(ws.cell(column=int(self.excel_import_press_column),row=i).value)
@@ -492,9 +572,22 @@ class LibrarySystem(maliang.Tk):
                                     break
                             if None_num == 0:
                                 lb.Add_Book(_to_add_book_list)
-                    messagebox.showinfo("提示","导入完成")
+                    def jiazaiing():
+                        global start
+                        imp(start)
+                        self.jiazai_Spinner.set(round(start/all,2))
+                        self.jiazai_jindu_text.set(f"进度: {round(start/all,2)*100}%")
+                        if start == end:
+                            messagebox.showinfo("提示","导入完成")
+                            self.goback(self.jiazai)
+                            self.goback(self._import_book_)
+                            return 0
+                        else:
+                            start += 1
+                            self.jiazai.after(10,jiazaiing)
+                    self.jiazai.after(100,jiazaiing)
+                    self.jiazai.mainloop()
                     
-                    self.goback(self._import_book_)
             else:
                 print("表格列数输入有误")
                 return 0
@@ -564,6 +657,7 @@ class LibrarySystem(maliang.Tk):
     
     def delete_all_book(self):
         lb.delete_all_book()
+        self.refresh_now_splite_has_books_show_tree()
         messagebox.showinfo("提示","已清空所有书籍信息")
         return 0
     
@@ -890,18 +984,18 @@ class LibrarySystem(maliang.Tk):
         self.one_delete_book_window.iconbitmap(mypath("favicon.ico"))
         
 
-        self.one_delete_book_wondow__Canvas = maliang.Canvas(self.one_delete_book_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
-        self.one_delete_book_wondow__Canvas.place(width=1000, height=800, x=0, y=0)
+        self.one_delete_book_window__Canvas = maliang.Canvas(self.one_delete_book_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.one_delete_book_window__Canvas.place(width=1000, height=800, x=0, y=0)
         def print_option_selected(index):
             print(f"{['书籍搜索',"isbn搜索"][index]} {index}")
 
         
-        self.one_delete_book_back = maliang.Button(self.one_delete_book_wondow__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.one_delete_book_window))
-        self.one_delete_book_search_type_OptionButton = maliang.OptionButton(self.one_delete_book_wondow__Canvas,(0,50), size=(100,35),fontsize=15,text=("书籍搜索", "ISBN搜索"),command=print_option_selected,default=0)
-        self.one_delete_book_search_button = maliang.Button(self.one_delete_book_wondow__Canvas,(100,50),size=(100,35),fontsize=15,text="搜索书籍", anchor="nw", command=lambda:self.one_delete_book_search_book())
-        self.one_delete_book_search_inputbox = maliang.InputBox(self.one_delete_book_wondow__Canvas,(200,50),size=(800,35))
+        self.one_delete_book_back = maliang.Button(self.one_delete_book_window__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.one_delete_book_window))
+        self.one_delete_book_search_type_OptionButton = maliang.OptionButton(self.one_delete_book_window__Canvas,(0,50), size=(100,35),fontsize=15,text=("书籍搜索", "ISBN搜索"),command=print_option_selected,default=0)
+        self.one_delete_book_search_button = maliang.Button(self.one_delete_book_window__Canvas,(100,50),size=(100,35),fontsize=15,text="搜索书籍", anchor="nw", command=lambda:self.one_delete_book_search_book())
+        self.one_delete_book_search_inputbox = maliang.InputBox(self.one_delete_book_window__Canvas,(200,50),size=(800,35))
         self.one_delete_book_search_inputbox.bind("<Return>",self.one_delete_book_search_book)
-        self.one_delete_book_search_show_tree = ttk.Treeview(self.one_delete_book_wondow__Canvas,columns=("书名","作者","出版社","出版时间","ISBN","库存"),show="headings")
+        self.one_delete_book_search_show_tree = ttk.Treeview(self.one_delete_book_window__Canvas,columns=("书名","作者","出版社","出版时间","ISBN","库存"),show="headings")
         self.one_delete_book_search_show_tree.heading("书名", text="书名")
         self.one_delete_book_search_show_tree.heading("作者", text="作者")
         self.one_delete_book_search_show_tree.heading("出版社", text="出版社")
@@ -917,25 +1011,25 @@ class LibrarySystem(maliang.Tk):
         self.one_delete_book_search_show_tree.place(x=0,y=100,width=600,height=500)
         self.one_delete_book_search_show_tree.bind("<ButtonRelease-1>",self.one_delete_book_search_show_tree_double_click)
 
-        self.one_delete_book_delete_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,100),text="预删除书籍信息:",underline=True,anchor="nw")
-        self.one_delete_book_book_name_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,150),text="书名: ",anchor="nw")
-        self.one_delete_book_book_name = maliang.Text(self.one_delete_book_wondow__Canvas,(680,150),text="",anchor="nw")
-        self.one_delete_book_author_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,200),text="作者: ",anchor="nw")
-        self.one_delete_book_author_name = maliang.Text(self.one_delete_book_wondow__Canvas,(680,200),text="",anchor="nw")
-        self.one_delete_book_press_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,250),text="出版社: ",anchor="nw")
-        self.one_delete_book_press = maliang.Text(self.one_delete_book_wondow__Canvas,(700,250),text="",anchor="nw")
-        self.one_delete_book_publicationTime_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,300),text="出版时间: ",anchor="nw")
-        self.one_delete_book_publicationTime = maliang.Text(self.one_delete_book_wondow__Canvas,(720,300),text="",anchor="nw")
-        self.one_delete_book_bookInfo_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,350),text="书籍介绍: ",anchor="nw")
-        self.one_delete_book_bookInfo = maliang.Text(self.one_delete_book_wondow__Canvas,(630,380),text="",anchor="nw")
-        self.one_delete_book_isbn_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,500),text="ISBN: ",anchor="nw")
-        self.one_delete_book_isbn = maliang.Text(self.one_delete_book_wondow__Canvas,(685,500),text="",anchor="nw")
-        self.one_delete_book_inventory_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,550),text="库存: ",anchor="nw")
-        self.one_delete_book_inventory = maliang.Text(self.one_delete_book_wondow__Canvas,(680,550),text="",anchor="nw")
-        self.one_delete_book_id_text = maliang.Text(self.one_delete_book_wondow__Canvas,(630,600),text="id: ",anchor="nw")
-        self.one_delete_book_id = maliang.Text(self.one_delete_book_wondow__Canvas,(660,600),text="",anchor="nw")
+        self.one_delete_book_delete_text = maliang.Text(self.one_delete_book_window__Canvas,(630,100),text="预删除书籍信息:",underline=True,anchor="nw")
+        self.one_delete_book_book_name_text = maliang.Text(self.one_delete_book_window__Canvas,(630,150),text="书名: ",anchor="nw")
+        self.one_delete_book_book_name = maliang.Text(self.one_delete_book_window__Canvas,(680,150),text="",anchor="nw")
+        self.one_delete_book_author_text = maliang.Text(self.one_delete_book_window__Canvas,(630,200),text="作者: ",anchor="nw")
+        self.one_delete_book_author_name = maliang.Text(self.one_delete_book_window__Canvas,(680,200),text="",anchor="nw")
+        self.one_delete_book_press_text = maliang.Text(self.one_delete_book_window__Canvas,(630,250),text="出版社: ",anchor="nw")
+        self.one_delete_book_press = maliang.Text(self.one_delete_book_window__Canvas,(700,250),text="",anchor="nw")
+        self.one_delete_book_publicationTime_text = maliang.Text(self.one_delete_book_window__Canvas,(630,300),text="出版时间: ",anchor="nw")
+        self.one_delete_book_publicationTime = maliang.Text(self.one_delete_book_window__Canvas,(720,300),text="",anchor="nw")
+        self.one_delete_book_bookInfo_text = maliang.Text(self.one_delete_book_window__Canvas,(630,350),text="书籍介绍: ",anchor="nw")
+        self.one_delete_book_bookInfo = maliang.Text(self.one_delete_book_window__Canvas,(630,380),text="",anchor="nw")
+        self.one_delete_book_isbn_text = maliang.Text(self.one_delete_book_window__Canvas,(630,500),text="ISBN: ",anchor="nw")
+        self.one_delete_book_isbn = maliang.Text(self.one_delete_book_window__Canvas,(685,500),text="",anchor="nw")
+        self.one_delete_book_inventory_text = maliang.Text(self.one_delete_book_window__Canvas,(630,550),text="库存: ",anchor="nw")
+        self.one_delete_book_inventory = maliang.Text(self.one_delete_book_window__Canvas,(680,550),text="",anchor="nw")
+        self.one_delete_book_id_text = maliang.Text(self.one_delete_book_window__Canvas,(630,600),text="id: ",anchor="nw")
+        self.one_delete_book_id = maliang.Text(self.one_delete_book_window__Canvas,(660,600),text="",anchor="nw")
 
-        self.one_delete_book_delete_button = maliang.Button(self.one_delete_book_wondow__Canvas,(470,700),size=(100,35),fontsize=15,text="删除书籍", anchor="nw", command=lambda:self.one_delete_book_delete_book_button_click())
+        self.one_delete_book_delete_button = maliang.Button(self.one_delete_book_window__Canvas,(470,700),size=(100,35),fontsize=15,text="删除书籍", anchor="nw", command=lambda:self.one_delete_book_delete_book_button_click())
 
 
         self.one_delete_book_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.one_delete_book_window))
@@ -1064,17 +1158,360 @@ class LibrarySystem(maliang.Tk):
 
     def amend_book_info(self):
         self.root.withdraw()
-        self.amend_book_window = maliang.Toplevel(self.root,size=(1000,800),title="修改书籍信息")
+        self.amend_book_window = maliang.Toplevel(self.root,size=(1100,800),title="修改书籍信息")
         self.amend_book_window.center()
         self.amend_book_window.iconbitmap(mypath("favicon.ico"))
         
         self.amend_book_window__Canvas = maliang.Canvas(self.amend_book_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
-        self.amend_book_window__Canvas.place(x=0,y=0,width=1000,height=800)
+        self.amend_book_window__Canvas.place(x=0,y=0,width=1100,height=800)
 
         self.amend_book_goback_button = maliang.Button(self.amend_book_window__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.amend_book_window))
 
 
+        def print_option_selected(index):
+            print(f"{['书籍搜索',"isbn搜索"][index]} {index}")
+        self.amend_book_search_type_OptionButton = maliang.OptionButton(self.amend_book_window__Canvas,(0,50), size=(100,35),fontsize=15,text=("书籍搜索", "ISBN搜索"),command=print_option_selected,default=0)
+        self.amend_book_search_button = maliang.Button(self.amend_book_window__Canvas,(100,50),size=(100,35),fontsize=15,text="搜索书籍", anchor="nw", command=lambda:self.amend_book_search_book())
+        self.amend_book_search_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(200,50),size=(800,35))
+        self.amend_book_search_inputbox.bind("<Return>",self.amend_book_search_book)
+        self.amend_book_search_show_tree = ttk.Treeview(self.amend_book_window__Canvas,columns=("书名","作者","出版社","出版时间","ISBN","库存","id"),show="headings")
+        self.amend_book_search_show_tree.heading("书名",text="书名")
+        self.amend_book_search_show_tree.heading("作者",text="作者")
+        self.amend_book_search_show_tree.heading("出版社",text="出版社")
+        self.amend_book_search_show_tree.heading("出版时间",text="出版时间")
+        self.amend_book_search_show_tree.heading("ISBN",text="ISBN")
+        self.amend_book_search_show_tree.heading("库存",text="库存")
+        self.amend_book_search_show_tree.heading("id",text="id")
+        self.amend_book_search_show_tree.column("书名",width=90)
+        self.amend_book_search_show_tree.column("作者",width=90)
+        self.amend_book_search_show_tree.column("出版社",width=90)
+        self.amend_book_search_show_tree.column("出版时间",width=70)
+        self.amend_book_search_show_tree.column("ISBN",width=70)
+        self.amend_book_search_show_tree.column("库存",width=50)
+        self.amend_book_search_show_tree.column("id",width=90)
+        self.amend_book_search_show_tree.place(x=0,y=100,width=1000,height=150)
+        self.amend_book_search_show_tree.bind("<ButtonRelease-1>",self.amend_book_search_show_tree_double_click)
 
+        self.amend_book_chang_part_head_text = maliang.Text(self.amend_book_window__Canvas,(0,270),text="修改部分:",underline=True,anchor="nw")
+
+        self.amend_book_chang_part_bookname_text = maliang.Text(self.amend_book_window__Canvas,(0,320),text="书名: ",anchor="nw")
+        self.amend_book_chang_part_bookname_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(90,320),size=(830,35))
+
+        self.amend_book_chang_part_author_text = maliang.Text(self.amend_book_window__Canvas,(0,370),text="作者: ",anchor="nw")
+        self.amend_book_chang_part_author_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(90,370),size=(830,35))
+
+        self.amend_book_chang_part_press_text = maliang.Text(self.amend_book_window__Canvas,(0,420),text="出版社: ",anchor="nw")
+        self.amend_book_chang_part_press_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(120,420),size=(800,35))
+
+        self.amend_book_chang_part_publicationTime_text = maliang.Text(self.amend_book_window__Canvas,(0,470),text="出版时间: ",anchor="nw")
+        self.amend_book_chang_part_publicationTime_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(150,470),size=(770,35))
+
+        self.amend_book_chang_part_bookInfo_text = maliang.Text(self.amend_book_window__Canvas,(0,520),text="书籍信息: ",anchor="nw")
+        self.amend_book_chang_part_bookInfo_inputbox = tk.Text(self.amend_book_window__Canvas,height=5, width=70)
+        self.amend_book_chang_part_bookInfo_inputbox.configure(font=font.Font(family="Helvetica", size=14))
+        # self.amend_book_chang_part_bookInfo_inputbox.insert(tk.END, "哈哈哈哈哈哈哈哈哈哈哈啥哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈啥\nhahaha")
+        # text_box.get("1.0", tk.END)
+        self.amend_book_chang_part_bookInfo_inputbox.place(x=150,y=520)
+        
+        self.amend_book_chang_part_isbn_text = maliang.Text(self.amend_book_window__Canvas,(0,650),text="ISBN: ",anchor="nw")
+        self.amend_book_chang_part_isbn_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(90,650),size=(830,35))
+
+        self.amend_book_chang_part_inventory_text = maliang.Text(self.amend_book_window__Canvas,(0,700),text="库存: ",anchor="nw")
+        self.amend_book_chang_part_inventory_inputbox = maliang.InputBox(self.amend_book_window__Canvas,(90,700),size=(830,35))
+
+        self.amend_book_chang_part_id_text = maliang.Text(self.amend_book_window__Canvas,(0,750),text="id: ",anchor="nw")
+        self.amend_book_chang_part_id_Text = maliang.Text(self.amend_book_window__Canvas,(90,750))
+
+        self.amend_book_chang_part_bookname_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_bookname_change)
+        self.amend_book_chang_part_author_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_author_change)
+        self.amend_book_chang_part_press_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_press_change)
+        self.amend_book_chang_part_publicationTime_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_publicationTime_change)
+        self.amend_book_chang_part_bookInfo_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_bookInfo_change)
+        self.amend_book_chang_part_isbn_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_isbn_change)
+        self.amend_book_chang_part_inventory_inputbox.bind("<KeyRelease>",self.amend_book_chang_part_input_inventory_change)
+
+
+        self.amend_book_button = maliang.Button(self.amend_book_window__Canvas,(990,755),size=(100,35),fontsize=15,text="提交修改", anchor="nw", command=lambda:self.amend_book_change_book_info())
+
+
+        self.amend_book_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.amend_book_window))
+        pass
+    
+    def update_init_msg_of_amend_book_msg_to_inputbox(self):
+        self.amend_book_chang_part_bookname_inputbox.set(self.amend_book_bookname_first_msg)
+        self.amend_book_chang_part_author_inputbox.set(self.amend_book_author_first_msg)
+        self.amend_book_chang_part_press_inputbox.set(self.amend_book_press_first_msg)
+        self.amend_book_chang_part_publicationTime_inputbox.set(self.amend_book_publicationTime_first_msg)
+        self.amend_book_chang_part_bookInfo_inputbox.delete("1.0", tk.END)
+        self.amend_book_chang_part_bookInfo_inputbox.insert(tk.END, self.amend_book_bookInfo_first_msg)
+        self.amend_book_chang_part_isbn_inputbox.set(self.amend_book_isbn_first_msg)
+        self.amend_book_chang_part_inventory_inputbox.set(str(self.amend_book_inventory_first_msg))
+        self.amend_book_chang_part_id_Text.set(self.amend_book_id_first_msg)
+        pass
+
+
+
+    def amend_book_chang_part_input_bookname_change(self,*args):
+        if self.amend_book_chang_part_bookname_inputbox.get() != self.amend_book_bookname_first_msg:
+            self.amend_book_bookname_second_msg = self.amend_book_chang_part_bookname_inputbox.get()
+        elif self.amend_book_chang_part_bookname_inputbox.get() == self.amend_book_bookname_first_msg:
+            self.amend_book_bookname_second_msg = ""
+        print(self.amend_book_bookname_first_msg+"; "+self.amend_book_bookname_second_msg)
+    
+    def amend_book_chang_part_input_author_change(self,*args):
+        if self.amend_book_chang_part_author_inputbox.get() != self.amend_book_author_first_msg:
+            self.amend_book_author_second_msg = self.amend_book_chang_part_author_inputbox.get()
+        elif self.amend_book_chang_part_author_inputbox.get() == self.amend_book_author_first_msg:
+            self.amend_book_author_second_msg = ""
+        print(self.amend_book_author_first_msg+"; "+self.amend_book_author_second_msg)
+    
+    def amend_book_chang_part_input_press_change(self,*args):
+        if self.amend_book_chang_part_press_inputbox.get() != self.amend_book_press_first_msg:
+            self.amend_book_press_second_msg = self.amend_book_chang_part_press_inputbox.get()
+        elif self.amend_book_chang_part_press_inputbox.get() == self.amend_book_press_first_msg:
+            self.amend_book_press_second_msg = ""
+        print(self.amend_book_press_first_msg+"; "+self.amend_book_press_second_msg)
+    
+    def amend_book_chang_part_input_publicationTime_change(self,*args):
+        if self.amend_book_chang_part_publicationTime_inputbox.get() != self.amend_book_publicationTime_first_msg:
+            self.amend_book_publicationTime_second_msg = self.amend_book_chang_part_publicationTime_inputbox.get()
+        elif self.amend_book_chang_part_publicationTime_inputbox.get() == self.amend_book_publicationTime_first_msg:
+            self.amend_book_publicationTime_second_msg = ""
+        print(self.amend_book_publicationTime_first_msg+"; "+self.amend_book_publicationTime_second_msg)
+    
+    def amend_book_chang_part_input_bookInfo_change(self,*args):
+        if len(self.amend_book_chang_part_bookInfo_inputbox.get("1.0", tk.END).strip()) > 200:
+            self.amend_book_chang_part_bookInfo_inputbox.delete("end-2c", tk.END)
+        if self.amend_book_chang_part_bookInfo_inputbox.get("1.0", tk.END).strip() != self.amend_book_bookInfo_first_msg:
+            self.amend_book_bookInfo_second_msg = self.amend_book_chang_part_bookInfo_inputbox.get("1.0", tk.END).strip()
+        elif self.amend_book_chang_part_bookInfo_inputbox.get("1.0", tk.END).strip() == self.amend_book_bookInfo_first_msg:
+            self.amend_book_bookInfo_second_msg = ""
+        print(self.amend_book_bookInfo_first_msg+"; "+self.amend_book_bookInfo_second_msg)
+    
+    def amend_book_chang_part_input_isbn_change(self,*args):
+
+        if self.amend_book_chang_part_isbn_inputbox.get() != self.amend_book_isbn_first_msg:
+            self.amend_book_isbn_second_msg = self.amend_book_chang_part_isbn_inputbox.get()
+        elif self.amend_book_chang_part_isbn_inputbox.get() == self.amend_book_isbn_first_msg:
+            self.amend_book_isbn_second_msg = ""
+        print(self.amend_book_isbn_first_msg+"; "+self.amend_book_isbn_second_msg)
+       
+    
+    def amend_book_chang_part_input_inventory_change(self,*args):
+        true_inventory_geshi = r'^\d+$'
+        if bool(re.match(true_inventory_geshi, self.amend_book_chang_part_inventory_inputbox.get())) or self.amend_book_chang_part_inventory_inputbox.get()=="":
+            if self.amend_book_chang_part_inventory_inputbox.get() != self.amend_book_inventory_first_msg:
+                self.amend_book_inventory_second_msg = self.amend_book_chang_part_inventory_inputbox.get()
+            elif self.amend_book_chang_part_inventory_inputbox.get() == self.amend_book_inventory_first_msg:
+                self.amend_book_inventory_second_msg = ""
+            print("库存修改:"+self.amend_book_inventory_first_msg+"; "+self.amend_book_inventory_second_msg)
+        else:
+            self.amend_book_chang_part_inventory_inputbox.set(self.amend_book_inventory_first_msg)
+    def amend_book_search_book(self,event=None):
+        search_thing = self.amend_book_search_inputbox.get()
+        print(search_thing)
+        search_books_list = []
+        if self.amend_book_search_type_OptionButton.get() == 0:
+            #书籍搜索
+            search_books_list = lb.Find_Books(self.amend_book_search_inputbox.get())
+            # print(search_books_list)
+            if len(search_books_list)>0:
+                self.now_show_amend_books_list = []
+                for item in self.amend_book_search_show_tree.get_children():
+                    self.amend_book_search_show_tree.delete(item)
+                for item in search_books_list:
+                    self.now_show_amend_books_list.append(item)
+                    self.amend_book_search_show_tree.insert("", "end", values=(item[0],item[1],item[2],item[3],item[5],item[6]))
+                    
+            else:
+                messagebox.showerror("错误", "未找到相关书籍")
+            pass
+
+        elif self.amend_book_search_type_OptionButton.get() == 1:
+            #isbn搜索
+            search_books_dict = lb.Find_book_by_isbn(self.amend_book_search_inputbox.get())
+            if search_books_dict['code'] == 200:
+                search_books_list = search_books_dict['msg']
+                self.now_show_amend_books_list = []
+                for item in self.amend_book_search_show_tree.get_children():
+                    self.amend_book_search_show_tree.delete(item)
+                self.now_show_amend_books_list.append(search_books_list)
+                # print(search_books_list)
+                self.amend_book_search_show_tree.insert("", "end", values=(search_books_list[0],search_books_list[1],search_books_list[2],search_books_list[3],search_books_list[5],search_books_list[6]))
+            elif search_books_dict['code'] == 404:
+                messagebox.showerror("错误", "未找到该书籍")
+                return 0
+
+
+
+    def amend_book_search_show_tree_double_click(self,event=None):
+        selected_item = self.amend_book_search_show_tree.selection()[0]
+        book_info_in_tree = self.amend_book_search_show_tree.item(selected_item, "values")
+        index = self.amend_book_search_show_tree.index(selected_item)
+        book_info = self.now_show_amend_books_list[index]
+        print(book_info)
+        self.amend_book_bookname_first_msg = book_info[0]
+        self.amend_book_bookInfo_first_msg = book_info[4]
+        self.amend_book_author_first_msg = book_info[1]
+        self.amend_book_press_first_msg = book_info[2]
+        self.amend_book_publicationTime_first_msg = book_info[3]
+        self.amend_book_isbn_first_msg = book_info[5]
+        self.amend_book_inventory_first_msg = str(book_info[6])
+        self.amend_book_id_first_msg = book_info[7]
+        self.update_init_msg_of_amend_book_msg_to_inputbox()
+
+    def amend_book_change_book_info(self):
+        update_book_info_list = []
+        if self.amend_book_bookname_second_msg != "":
+            update_book_info_list.append(self.amend_book_bookname_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_bookname_first_msg)
+        if self.amend_book_author_second_msg != "":
+            update_book_info_list.append(self.amend_book_author_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_author_first_msg)
+        if self.amend_book_press_second_msg != "":
+            update_book_info_list.append(self.amend_book_press_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_press_first_msg)
+        if self.amend_book_publicationTime_second_msg != "":
+            update_book_info_list.append(self.amend_book_publicationTime_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_publicationTime_first_msg)
+        if self.amend_book_bookInfo_second_msg != "":
+            update_book_info_list.append(self.amend_book_bookInfo_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_bookInfo_first_msg)
+        if self.amend_book_isbn_second_msg != "":
+            update_book_info_list.append(self.amend_book_isbn_second_msg)
+        else:
+            update_book_info_list.append(self.amend_book_isbn_first_msg)
+        if self.amend_book_inventory_second_msg == "":
+            self.amend_book_inventory_second_msg = 0
+        if self.amend_book_inventory_second_msg != "":
+            update_book_info_list.append(int(self.amend_book_inventory_second_msg))
+        if len(update_book_info_list) == 0:
+            messagebox.showerror("错误", "未修改任何信息")
+            return 0
+        update_book_info_result = lb.amend_book_msg(self.amend_book_id_first_msg,update_book_info_list)
+        if update_book_info_result['code'] == 200:
+            messagebox.showinfo("提示", "修改成功")
+        elif update_book_info_result['code'] == 404:
+            messagebox.showerror("错误", update_book_info_result['msg'])
+        self.goback(self.amend_book_window)
+
+
+
+
+
+
+    def add_student_info(self):
+        self.root.withdraw()
+        self.add_student_window = maliang.Toplevel(self.root,(1000,600),title="添加学生信息")
+        self.add_student_window.center()
+        self.add_student_window.iconbitmap(mypath("favicon.ico"))
+
+        self.add_student_window__Canvas = maliang.Canvas(self.add_student_window,auto_update=True,expand="xy",keep_ratio="max",auto_zoom=True)
+        self.add_student_window__Canvas.place(x=0,y=0,width=1000,height=600)
+
+        self.add_student_back_button = maliang.Button(self.add_student_window__Canvas,(0,0),size=(50,20),fontsize=15,text="返回", anchor="nw", command=lambda:self.goback(self.add_student_window))
+
+        self.add_student_name_text = maliang.Text(self.add_student_window__Canvas,(0,50),text="姓名：", anchor="nw")
+        self.add_student_name_inputbox = maliang.InputBox(self.add_student_window__Canvas,(100,50),size=(500,50),anchor="nw")
+
+        self.add_student_class_text = maliang.Text(self.add_student_window__Canvas,(0,120),text="班级：", anchor="nw")
+        self.add_student_class_inputbox = maliang.InputBox(self.add_student_window__Canvas,(100,120),size=(500,50),anchor="nw")
+        self.add_student_class_inputbox.bind("<KeyRelease>",self.check_add_student_class_input)
+
+        self.add_student_id_text = maliang.Text(self.add_student_window__Canvas,(0,190),text="学号：", anchor="nw")
+        self.add_student_id_inputbox = maliang.InputBox(self.add_student_window__Canvas,(100,190),size=(500,50),anchor="nw")
+        self.add_student_id_inputbox.bind("<KeyRelease>",self.check_add_student_id_input)
+
+        self.add_student_qrcode_save_path_text = maliang.Text(self.add_student_window__Canvas,(0,260),text="二维码保存路径：", anchor="nw")
+        self.add_student_qrcode_save_path_inputbox = maliang.Text(self.add_student_window__Canvas,(200,260),anchor="nw",text=f"{mypath("学生信息\\")}")
+        self.add_student_qrcode_save_path_inputbox.set(f"{mypath('学生信息\\')}")
+        
+        self.add_student_qrcode_save_path_choise_button = maliang.Button(self.add_student_window__Canvas,(800,260),size=(100,50),text="选择", anchor="nw", command=lambda:self.choose_qrcode_save_path())
+
+        self.add_student_password_text = maliang.Text(self.add_student_window__Canvas,(650,50),text="密码: ", anchor="nw")
+        self.add_student_password_inputbox = maliang.InputBox(self.add_student_window__Canvas,(750,50),size=(200,50),anchor="nw",placeholder="(为空随机)")
+
+        def show_qrcode_when_finish_checkbox_change(index):
+            print(index)
+            self.add_student_show_qrcode_when_finish = index
+        self.add_student_show_qrcode_when_finish_checkbox = maliang.CheckBox(self.add_student_window__Canvas,(0,350),anchor="nw", command=show_qrcode_when_finish_checkbox_change)
+        self.add_student_show_qrcode_when_finish_checkbox.set(True)
+        self.add_student_show_qrcode_when_finish_text = maliang.Text(self.add_student_window__Canvas,(40,350),text="完成后是否显示二维码", anchor="nw")
+
+
+
+        self.add_student_add_button = maliang.Button(self.add_student_window__Canvas,(450,530),size=(100,50),text="添加", anchor="nw", command=lambda:self.add_student_info_to_db())
+
+
+
+
+
+
+        self.add_student_window.protocol("WM_DELETE_WINDOW", lambda:self.goback(self.add_student_window))
+        
+        pass
+
+    def check_add_student_class_input(self,*args):
+        true_class_geshi = r'^\d+$'
+        if not (bool(re.match(true_class_geshi, self.add_student_class_inputbox.get())) or self.add_student_class_inputbox.get()==""):
+            self.add_student_class_inputbox.set("")
+
+    def check_add_student_id_input(self,*args):
+        true_id_geshi = r'^\d+$'
+        if not (bool(re.match(true_id_geshi, self.add_student_id_inputbox.get())) or self.add_student_id_inputbox.get()==""):
+            self.add_student_id_inputbox.set("")
+
+    def choose_qrcode_save_path(self):
+        path = filedialog.askdirectory()
+        if path:
+            self.add_student_qrcode_save_path_inputbox.set(path)
+            self.add_student_qrcode_save_path = path
+        
+        del path
+
+    def add_student_info_to_db(self):
+        student_name = self.add_student_name_inputbox.get()
+        student_class = self.add_student_class_inputbox.get()
+        student_id = self.add_student_id_inputbox.get()
+        student_password = self.add_student_password_inputbox.get()
+        student_qr_save_path = self.add_student_qrcode_save_path_inputbox.get()
+        if student_qr_save_path == "":
+            student_qr_save_path = mypath('学生信息\\')
+        if not(student_name and not student_name.isspace() and student_class and not student_class.isspace() and student_id and not student_id.isspace()):
+            messagebox.showerror("错误", "姓名、班级或学号不能为空")
+            return 0
+        student_name = student_name.strip()
+        student_class = student_class.strip()
+        student_id = student_id.strip()
+        student_password = student_password.strip()
+        if os.path.exists(student_qr_save_path):
+            print(f"路径 {student_qr_save_path} 已存在。")
+        else:
+            try:
+                # 尝试创建路径
+                os.makedirs(student_qr_save_path)
+                print(f"路径 {student_qr_save_path} 不存在，已创建。")
+            except OSError as e:
+                print(f"创建路径 {student_qr_save_path} 时出错: {e}")
+
+        if lb.Register_User(student_name, student_class, student_id, student_password,self.add_student_show_qrcode_when_finish,student_qr_save_path):
+            messagebox.showinfo("提示", "添加成功")
+        else:
+            messagebox.showerror("错误", "添加失败")
+        self.goback(self.add_student_window)
+        return 0
+
+
+
+    def delete_student_info(self):
+        pass
+
+    def amend_student_info(self):
         pass
 Developer = LibrarySystem()
 

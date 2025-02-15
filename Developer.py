@@ -42,7 +42,7 @@
 ###|->9.3当点击“导出表格内容”时，让用户选择导出路径，然后导出表格内容到excel文件中(含表头，即“操作时间”，“操作”)，文件名为“操作日志.xlsx”,保存到指定路径中
 ##这样连接数据库Librarysql = sqlite3.connect(mypath("Library.oflibrary"))systemlog = sqlite3.connect(mypath("Library.log"))
 ###数据库Library.oflibrary的内容:
-####Create table books(bookname text,author text,press text,publicationTime text,bookInfo text,isbn text,inventory int);
+####Create table books(bookname text,author text,press text,publicationTime text,bookInfo text,isbn text,inventory int, id text);
 ####Create table borrow(bookname text,author text,press text,publicationTime text,isbn text,borrowtime text,MustReturnTime text,ReaderName text,Readerid int,Readerclass int);
 ####Create table borrowhistory(bookname text,author text,press text,publicationTime text,isbn text,borrowtime text,MustBookReturnTime text,TrueBookReturnTime text,ReaderName text,Readerid int,Readerclass int);
 ####Create table users(Username text,Userid int,Userclass int,UserBorrowBooks text,UserPassword text,UserBorrowedBooks text);

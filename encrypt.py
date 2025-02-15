@@ -101,12 +101,12 @@ class ApolloJM():
         return reallymsg
     def mypath(self,other: str | None = ""):
         return str(os.path.dirname(os.path.abspath(__file__)))+"\\"+other
-    def 自动化加密并二维码(self,username,userclass,userid,userpassword,openimg = False):
+    def 自动化加密并二维码(self,username,userclass,userid,userpassword,openimg = False,save_path = "f:/py/myLibrarysystem/学生信息/"):
         userclass = str(userclass)
         userid = str(userid)
         txt = self.加密二维码信息(username,userclass,userid,userpassword)
         name = username+userclass+userid+".png"
-        self.生成二维码(txt,name,self.mypath("学生信息\\"),openimg)
+        self.生成二维码(txt,name,save_path,openimg)
     def 自动化解密二维码(self,name,path) -> list:
         readmsg = self.识别二维码(name,path)
         usermsg = self.解密(readmsg)

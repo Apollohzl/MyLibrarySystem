@@ -519,20 +519,44 @@ class Library:
         else:
             return {"code":404,"msg":"扫描不清楚或无该图书，请核对isbn码是否破损"}
 
+
+
+    def amend_book_msg(self,book_id,book_new:list):
+        print(f">Library>amend_book_msg({book_id},{book_new})")
+        try:
+            tosql = '''
+            UPDATE books set bookname =?,author =?,press =?,publicationTime =?,bookInfo =?,isbn =?,inventory =? where id =?
+            '''
+            msgtosql = (
+                book_new[0],
+                book_new[1],
+                book_new[2],
+                book_new[3],
+                book_new[4],
+                book_new[5],
+                book_new[6],
+                book_id)
+            Librarysql.execute(tosql,msgtosql)
+            Librarysql.commit()
+            self.Add_Log(f"User 修改书籍{book_id}信息 ")
+            return {'code':200,'msg':"修改成功"}
+        except Exception as e:
+            print(f">Library>amend_book_msg()-R:Error:{e}")
+            return {'code':404,'msg':f"修改失败 {e}"}
 #==============================================================================
 #User类组件
 
 
 #User的注册
-    def Register_User(self,username,userclass,userid,password,open=False):
-        print(f">Library>Register_User({username},{userid},{userclass},openimg?={open},password自定义?={password})")
-        if password == True:
+    def Register_User(self,username,userclass,userid,password,open=False,save_path=f"{mypath('学生信息\\')}"):
+        print(f">Library>Register_User({username},{userid},{userclass},{password},openimg?={open},password自定义?={password},save_path={save_path})")
+        if password == True or password == "":
             firstpassword = encrypt.一级加密(str(random.randint(100000,999999)))
         elif type(password)==type("123456"):
             firstpassword = mimajiami(password)
         else:
             print(">Library>Register_User()-R:password参数 error!")
-            return 0
+            return False
         tosql = '''
         INSERT into users values(?,?,?,?,?,?)
         '''
@@ -546,8 +570,12 @@ class Library:
         Librarysql.execute(tosql,msgtosql)
         Librarysql.commit()
         self.Add_Log(f"User {username} 注册")
-        encrypt.自动化加密并二维码(username,userclass,userid,firstpassword,open)
+        if save_path== "":
+            encrypt.自动化加密并二维码(username,userclass,userid,firstpassword,open)
+        else:
+            encrypt.自动化加密并二维码(username,userclass,userid,firstpassword,open,save_path)
         print(f">Library>Register_User()-R:Register Ok!")
+        return True
 #User信息解密-<str
     def Decrypt_User_Info(self,text:str)->list:
         User_msg = encrypt.解密(text)
@@ -628,6 +656,17 @@ class Library:
         '''
         cursor = Librarysql.execute(tosql)
         return cursor.fetchall()
+
+#User搜索name
+    def find_user_by_name(self,name)->list:
+        print(f">Library>find_user_by_name({name})")
+        tosql = '''
+        SELECT * from users`
+        '''
+        cursor = Librarysql.execute(tosql)
+        users = cursor.fetchall()
+        print(users)
+
 
 #注销User，提供User名，id，class注销
     def Delete_User(self,username,userid,userclass):
